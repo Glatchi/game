@@ -1,0 +1,1875 @@
+
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>箱積みローグライク</title>
+    <style>
+        body {
+            font-family: 'Arial', sans-serif;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            background-color: #f0f0f0;
+            margin: 0;
+            padding: 10px;
+            max-width: 100vw;
+            overflow-x: hidden;
+        }
+        .game-container {
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+            width: 100%;
+            max-width: 500px;
+        }
+        .header {
+            text-align: center;
+            margin-bottom: 5px;
+            width: 100%;
+        }
+        .header h1 {
+            font-size: 1.5rem;
+            margin: 5px 0;
+        }
+        .status {
+            display: flex;
+            justify-content: space-between;
+            width: 100%;
+            margin-bottom: 5px;
+        }
+        .player-info {
+            display: flex;
+            flex-direction: column;
+            width: 48%;
+            background-color: #fff;
+            padding: 10px;
+            border-radius: 8px;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+        }
+        .player-stats {
+            display: flex;
+            flex-wrap: wrap;
+            justify-content: space-between;
+            margin-top: 5px;
+            font-size: 0.85rem;
+        }
+        .stat-item {
+            width: 48%;
+            margin-bottom: 4px;
+        }
+        .health-bar {
+            width: 100%;
+            height: 20px;
+            background-color: #e0e0e0;
+            border-radius: 10px;
+            overflow: hidden;
+            margin-top: 5px;
+        }
+        .health-fill {
+            height: 100%;
+            background-color: #4caf50;
+            transition: width 0.3s ease;
+        }
+        .enemy-health-fill {
+            background-color: #f44336;
+        }
+        .board {
+            display: grid;
+            grid-template-columns: repeat(6, 60px);
+            grid-template-rows: repeat(8, 60px);
+            gap: 2px;
+            background-color: #2196F3;
+            padding: 10px;
+            border-radius: 8px;
+            box-shadow: 0 4px 8px rgba(0,0,0,0.2);
+            margin: 0 auto;
+            position: relative;
+        }
+        .cell {
+            background-color: #fff;
+            border-radius: 4px;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            cursor: pointer;
+            transition: background-color 0.2s;
+        }
+        .cell:hover {
+            background-color: #e3f2fd;
+        }
+        .player-piece, .enemy-piece {
+            width: 50px;
+            height: 50px;
+            border-radius: 4px;
+            position: relative;
+        }
+        .player-piece {
+            background-color: #ffeb3b;
+        }
+        .enemy-piece {
+            background-color: #ff5722;
+        }
+        .boss-piece {
+            background-color: #e91e63;
+            box-shadow: 0 0 10px #ff0000;
+        }
+        .cards {
+            display: flex;
+            gap: 10px;
+            margin-top: 10px;
+            flex-wrap: wrap;
+            justify-content: center;
+        }
+        .card {
+            width: 120px;
+            height: 160px;
+            background-color: #fff;
+            border-radius: 8px;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+            display: flex;
+            flex-direction: column;
+            padding: 10px;
+            cursor: pointer;
+            transition: transform 0.2s;
+            position: relative;
+        }
+        .card:hover {
+            transform: translateY(-5px);
+        }
+        .card-title {
+            font-weight: bold;
+            text-align: center;
+            margin-bottom: 5px;
+        }
+        .card-desc {
+            font-size: 12px;
+            flex-grow: 1;
+        }
+        .active-card {
+            border: 3px solid #4caf50;
+        }
+        .consumable-card {
+            border: 2px dashed #ff9800;
+        }
+        .game-over {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            background-color: rgba(0, 0, 0, 0.8);
+            color: white;
+            padding: 20px;
+            border-radius: 10px;
+            text-align: center;
+            display: none;
+        }
+        .game-over button {
+            background-color: #4caf50;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 5px;
+            cursor: pointer;
+            margin-top: 10px;
+        }
+        .turn-indicator {
+            font-size: 20px;
+            font-weight: bold;
+            margin-bottom: 10px;
+            text-align: center;
+        }
+        .info-panel {
+            margin-top: 20px;
+            background-color: #fff;
+            padding: 10px;
+            border-radius: 8px;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+            width: 100%;
+            max-width: 500px;
+        }
+        .status-effects {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 5px;
+            margin-top: 5px;
+        }
+        .status-effect {
+            font-size: 0.75rem;
+            padding: 3px 6px;
+            border-radius: 10px;
+            color: white;
+            background-color: #673ab7;
+        }
+        .status-effect.buff {
+            background-color: #4caf50;
+        }
+        .status-effect.debuff {
+            background-color: #f44336;
+        }
+        .game-info {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 10px;
+            background-color: #fff;
+            padding: 10px;
+            border-radius: 8px;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+        }
+        .cooldown {
+            position: absolute;
+            bottom: 5px;
+            right: 5px;
+            background-color: rgba(0, 0, 0, 0.7);
+            color: white;
+            width: 20px;
+            height: 20px;
+            border-radius: 50%;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            font-size: 0.75rem;
+        }
+        .card-selection-modal {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0, 0, 0, 0.7);
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            z-index: 1000;
+            padding: 20px;
+            box-sizing: border-box;
+        }
+        .card-selection-title {
+            color: white;
+            font-size: 1.5rem;
+            margin-bottom: 20px;
+            text-align: center;
+        }
+        .card-selection-options {
+            display: flex;
+            justify-content: center;
+            gap: 20px;
+            flex-wrap: wrap;
+            margin-bottom: 20px;
+        }
+        .stage-clear-notification {
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            background-color: rgba(0, 0, 0, 0.8);
+            color: white;
+            padding: 20px;
+            border-radius: 10px;
+            z-index: 999;
+            text-align: center;
+            font-size: 1.5rem;
+        }
+        .healing-effect {
+            color: #4caf50;
+            font-weight: bold;
+        }
+        .damage-effect {
+            color: #f44336;
+            font-weight: bold;
+        }
+        .messages-container {
+            position: fixed;
+            bottom: 20px;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 80%;
+            max-width: 500px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            z-index: 1000;
+            gap: 5px;
+            pointer-events: none;
+        }
+        .message {
+            background-color: rgba(0, 0, 0, 0.7);
+            color: white;
+            padding: 10px 20px;
+            border-radius: 5px;
+            text-align: center;
+            max-width: 100%;
+            animation: fadeOut 3s forwards;
+        }
+        @keyframes fadeOut {
+            0% { opacity: 1; }
+            70% { opacity: 1; }
+            100% { opacity: 0; }
+        }
+        .falling-piece {
+            position: absolute;
+            transition: top 0.5s ease;
+        }
+        /* ログパネル用スタイル */
+        .log-panel {
+            height: 200px;
+            overflow-y: auto;
+            border: 1px solid #ccc;
+            padding: 10px;
+            margin-top: 10px;
+            background-color: #fff;
+            font-size: 0.85rem;
+            border-radius: 4px;
+        }
+        .log-entry {
+            margin-bottom: 5px;
+            border-bottom: 1px solid #eee;
+            padding-bottom: 5px;
+        }
+        .log-turn {
+            font-weight: bold;
+            color: #2196F3;
+        }
+        .log-damage {
+            color: #f44336;
+        }
+        .log-heal {
+            color: #4caf50;
+        }
+        .log-effect {
+            color: #9c27b0;
+        }
+        .log-calculation {
+            margin-left: 20px;
+            font-style: italic;
+            color: #666;
+        }
+        .toggle-log-button {
+            background-color: #2196F3;
+            color: white;
+            border: none;
+            padding: 5px 10px;
+            border-radius: 4px;
+            cursor: pointer;
+            margin-top: 5px;
+        }
+        .stage-indicator {
+            position: absolute;
+            top: 5px;
+            right: 5px;
+            background-color: rgba(0, 0, 0, 0.7);
+            color: white;
+            padding: 3px 8px;
+            border-radius: 10px;
+            font-size: 0.75rem;
+            z-index: 10;
+        }
+        .boss-stage {
+            color: #ff5722;
+            font-weight: bold;
+        }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <h1>箱積みローグライク</h1>
+        <div class="turn-indicator" id="turnIndicator">あなたのターン</div>
+    </div>
+    
+    <div class="game-info">
+        <div>ステージ: <span id="stageNumber">1</span></div>
+        <div>ターン: <span id="turnCounter">1</span></div>
+    </div>
+    
+    <div class="game-container">
+        <div class="status">
+            <div class="player-info">
+                <h3>プレイヤー</h3>
+                <div>HP: <span id="playerHP">100</span>/100</div>
+                <div class="health-bar">
+                    <div class="health-fill" id="playerHealthFill" style="width: 100%;"></div>
+                </div>
+                <div class="player-stats">
+                    <div class="stat-item">攻撃力: <span id="playerAttack">10</span></div>
+                    <div class="stat-item">防御力: <span id="playerDefense">0</span></div>
+                    <div class="stat-item">連続ダメージ: <span id="consecutiveHits">0</span></div>
+                    <div class="stat-item">クリティカル: <span id="criticalChance">0</span>%</div>
+                </div>
+                <div class="status-effects" id="playerStatusEffects">
+                    <!-- ステータス効果がここに表示される -->
+                </div>
+            </div>
+            <div class="player-info">
+                <h3>敵</h3>
+                <div>HP: <span id="enemyHP">10</span>/<span id="enemyMaxHP">10</span></div>
+                <div class="health-bar">
+                    <div class="health-fill enemy-health-fill" id="enemyHealthFill" style="width: 100%;"></div>
+                </div>
+                <div class="player-stats">
+                    <div class="stat-item">攻撃力: <span id="enemyAttack">5</span></div>
+                    <div class="stat-item">防御力: <span id="enemyDefense">0</span></div>
+                </div>
+                <div class="status-effects" id="enemyStatusEffects">
+                    <!-- 敵のステータス効果がここに表示される -->
+                </div>
+            </div>
+        </div>
+        
+        <div class="board" id="gameBoard">
+            <div class="stage-indicator" id="stageIndicator">ステージ 1</div>
+        </div>
+        
+        <button class="toggle-log-button" id="toggleLogButton">ログを表示</button>
+        <div class="log-panel" id="logPanel" style="display: none;">
+            <!-- ここにログエントリが追加される -->
+        </div>
+        
+        <div class="info-panel">
+            <h3>特殊カード (<span id="activeCardCount">0</span>/3)</h3>
+            <div class="cards" id="cardsContainer"></div>
+        </div>
+    </div>
+    
+    <div class="messages-container" id="messagesContainer">
+        <!-- メッセージがここに追加される -->
+    </div>
+    
+    <div class="game-over" id="gameOverPanel">
+        <h2 id="gameOverMessage"></h2>
+        <button id="restartButton">再挑戦</button>
+    </div>
+
+    <script>
+        // ゲームの状態
+        const gameState = {
+            board: Array(8).fill().map(() => Array(6).fill(null)),
+            currentPlayer: 'player',
+            playerHP: 100,
+            enemyHP: 10,
+            enemyMaxHP: 10,
+            playerAttack: 10,
+            playerDefense: 0,
+            enemyAttack: 5,
+            enemyDefense: 0,
+            criticalChance: 0,
+            stage: 1,
+            turn: 1,
+            playerCards: [],
+            activeCards: [],
+            gameOver: false,
+            boardWidth: 6,
+            boardHeight: 8,
+            consecutiveDamageCount: 0,
+            masteryCounter: 0,
+            masteryBonus: 0,
+            statusEffects: {
+                player: [],
+                enemy: []
+            },
+            lastColumn: -1,  // 一心不乱カード用
+            sameColumnCounter: 0,  // 一心不乱カード用
+            cardSelectionInProgress: false,
+            isBossStage: false,
+            animationInProgress: false,
+            log: [] // ゲームログの保存
+        };
+
+        // カードの基本テンプレート
+        const createCard = (id, name, description, isConsumable = false) => ({
+            id, name, description, isActive: false, consumable: isConsumable, cooldown: 0
+        });
+
+        // カードの定義
+        const cardDefinitions = [
+            {
+                ...createCard('full-power', 'フルパワー', 'HPが満タンだと与えるダメージが+10される'),
+                effect: (damage) => gameState.playerHP === 100 ? damage + 10 : damage
+            },
+            {
+                ...createCard('iron-wall', '鉄壁', '2×2マスを自分の箱で埋めると、被ダメージが常に-5される'),
+                receiveDamageEffect: (damage) => checkFor2x2Square() ? Math.max(0, damage - 5) : damage,
+                onActivate: () => {
+                    gameState.playerDefense += 2;
+                    updateUI();
+                    addToLog('効果', '鉄壁カード: 防御力+2');
+                },
+                onDeactivate: () => {
+                    gameState.playerDefense -= 2;
+                    updateUI();
+                    addToLog('効果', '鉄壁カード: 防御力-2');
+                }
+            },
+            {
+                ...createCard('lucky-seven', 'ラッキーセブン', '7ターンごとに50%の確率で追加で箱を置くことができる'),
+                onTurnStart: () => {
+                    if (gameState.turn % 7 === 0 && Math.random() < 0.5) {
+                        addToLog('効果', 'ラッキーセブン: 追加ターン発動！');
+                        return true;
+                    }
+                    return false;
+                }
+            },
+            {
+                ...createCard('foundation', '縁の下の力持ち', '最も下段に自分の箱がある数分、攻撃力がプラスされる'),
+                effect: (damage) => damage + countBottomRowPieces(),
+                onActivate: () => {
+                    const bottomPieces = countBottomRowPieces();
+                    if (bottomPieces > 0) {
+                        gameState.playerAttack += bottomPieces;
+                        updateUI();
+                        addToLog('効果', `縁の下の力持ち: 攻撃力+${bottomPieces} (底段の箱: ${bottomPieces}個)`);
+                    }
+                },
+                onDeactivate: () => {
+                    const bottomPieces = countBottomRowPieces();
+                    if (bottomPieces > 0) {
+                        gameState.playerAttack -= bottomPieces;
+                        updateUI();
+                        addToLog('効果', `縁の下の力持ち: 攻撃力-${bottomPieces}`);
+                    }
+                },
+                onBoardChange: () => {
+                    if (gameState.activeCards.some(card => card.id === 'foundation')) {
+                        // 盤面変更時に攻撃力を再計算
+                        const currentBottomPieces = countBottomRowPieces();
+                        const card = gameState.activeCards.find(c => c.id === 'foundation');
+                        if (card.lastBottomPieces !== undefined) {
+                            gameState.playerAttack -= card.lastBottomPieces;
+                            gameState.playerAttack += currentBottomPieces;
+                            addToLog('効果', `縁の下の力持ち: 底段の箱が${card.lastBottomPieces}個→${currentBottomPieces}個に変化 (攻撃力${gameState.playerAttack})`);
+                            card.lastBottomPieces = currentBottomPieces;
+                        } else {
+                            card.lastBottomPieces = currentBottomPieces;
+                        }
+                        updateUI();
+                    }
+                }
+            },
+            {
+                ...createCard('heal-potion', '回復ポーション', '使用したら消える。HPを1~10のうちランダムな値回復する', true),
+                onUse: () => {
+                    const healAmount = Math.floor(Math.random() * 10) + 1;
+                    gameState.playerHP = Math.min(100, gameState.playerHP + healAmount);
+                    showMessage(`<span class="healing-effect">${healAmount}ポイント回復しました！</span>`);
+                    addToLog('回復', `回復ポーション: HP+${healAmount}`);
+                    updateUI();
+                    return true;
+                }
+            },
+            {
+                ...createCard('mastery-path', '上達への道', '3ターン連続で敵にダメージを与えると、攻撃力+1。この値は効果が発動するごとに+1される'),
+                effect: (damage) => damage + gameState.masteryBonus,
+                onDamageDealt: () => {
+                    gameState.masteryCounter++;
+                    if (gameState.masteryCounter >= 3) {
+                        gameState.masteryBonus++;
+                        gameState.playerAttack++;
+                        gameState.masteryCounter = 0;
+                        showMessage(`上達への道: 攻撃力+${gameState.masteryBonus}に上昇！`);
+                        addToLog('効果', `上達への道: 攻撃力+${gameState.masteryBonus}に上昇！`);
+                        updateUI();
+                    }
+                },
+                onActivate: () => {
+                    gameState.playerAttack += gameState.masteryBonus;
+                    updateUI();
+                    addToLog('効果', `上達への道: 攻撃力+${gameState.masteryBonus}`);
+                },
+                onDeactivate: () => {
+                    gameState.playerAttack -= gameState.masteryBonus;
+                    updateUI();
+                    addToLog('効果', `上達への道: 攻撃力-${gameState.masteryBonus}`);
+                }
+            },
+            {
+                ...createCard('snake-line', '長蛇の列', '5つ連続でリンクすると+50ダメージ'),
+                effect: (damage, connections) => {
+                    if (connections >= 5) {
+                        addToLog('効果', `長蛇の列: 5リンク以上のため、ダメージ+50 (${damage} → ${damage+50})`);
+                        return damage + 50;
+                    }
+                    return damage;
+                }
+            },
+            {
+                ...createCard('ultimate-spear', '最強の矛', '使用したら消える。即座に20ダメージ', true),
+                onUse: () => {
+                    // 実際のダメージ計算には攻撃力を適用
+                    const baseDamage = 20;
+                    const finalDamage = calculateDamage(baseDamage, gameState.playerAttack, gameState.enemyDefense);
+                    
+                    gameState.enemyHP = Math.max(0, gameState.enemyHP - finalDamage);
+                    showMessage(`敵に${finalDamage}ダメージ！`);
+                    addToLog('ダメージ', `最強の矛: 敵に${finalDamage}ダメージ`);
+                    addToLog('計算', `基本値:20 × 攻撃補正:${(1 + gameState.playerAttack / 20).toFixed(2)} - 防御:${gameState.enemyDefense} = ${finalDamage}`);
+                    updateUI();
+                    
+                    // 敵のHPが0になった場合
+                    if (gameState.enemyHP <= 0) {
+                        setTimeout(() => showStageClearNotification(), 500);
+                    }
+                    
+                    return true;
+                }
+            },
+            {
+                ...createCard('ultimate-shield', '最強の盾', '使用したら消える。このステージ中常に被ダメージが-5される', true),
+                onUse: () => {
+                    // 効果を発動するが、カードは消費される
+                    const shieldEffect = {
+                        id: 'ultimate-shield-effect',
+                        receiveDamageEffect: (damage) => Math.max(0, damage - 5),
+                        isActive: true,
+                        consumable: false,
+                        name: '最強の盾(効果)',
+                        description: '被ダメージが-5される'
+                    };
+                    
+                    if (!gameState.activeCards.some(card => card.id === 'ultimate-shield-effect')) {
+                        gameState.activeCards.push(shieldEffect);
+                    }
+                    
+                    // ステータス効果を追加
+                    addStatusEffect('player', {
+                        name: '最強の盾',
+                        type: 'buff',
+                        duration: -1  // -1は永続効果
+                    });
+                    
+                    // 防御力を直接上昇
+                    gameState.playerDefense += 5;
+                    updateUI();
+                    
+                    showMessage('最強の盾の効果が発動しました！');
+                    addToLog('効果', '最強の盾: 防御力+5、被ダメージ-5');
+                    return true;
+                }
+            },
+            // 新しいカード
+            {
+                ...createCard('concentration', '一心不乱', '3ターン連続で同じ列に置くと攻撃力+15'),
+                onPlacePiece: (col) => {
+                    if (gameState.lastColumn === col) {
+                        gameState.sameColumnCounter++;
+                        addToLog('効果', `一心不乱: 同じ列${gameState.sameColumnCounter}回連続`);
+                        if (gameState.sameColumnCounter >= 3) {
+                            addStatusEffect('player', {
+                                name: '一心不乱',
+                                type: 'buff',
+                                duration: 1
+                            });
+                            gameState.playerAttack += 15;
+                            updateUI();
+                            addToLog('効果', '一心不乱: 3回連続で同じ列に箱を置いたため、攻撃力+15');
+                            setTimeout(() => {
+                                gameState.playerAttack -= 15;
+                                updateUI();
+                                addToLog('効果', '一心不乱: 効果終了、攻撃力-15');
+                            }, 2000);
+                            return 15; // 攻撃力ボーナス
+                        }
+                    } else {
+                        gameState.lastColumn = col;
+                        gameState.sameColumnCounter = 1;
+                        addToLog('効果', `一心不乱: 列変更、カウンタリセット (現在1)`);
+                    }
+                    return 0;
+                }
+            },
+            {
+                ...createCard('gambler', 'ギャンブラー', '攻撃時に50%の確率で攻撃力が2倍、50%の確率で半分になる'),
+                effect: (damage) => {
+                    const roll = Math.random();
+                    if (roll < 0.5) {
+                        showMessage('ギャンブラー: 攻撃力2倍！');
+                        addToLog('効果', `ギャンブラー: 攻撃力2倍 (${damage} → ${damage * 2})`);
+                        return damage * 2;
+                    } else {
+                        showMessage('ギャンブラー: 攻撃力半減...');
+                        addToLog('効果', `ギャンブラー: 攻撃力半減 (${damage} → ${Math.floor(damage / 2)})`);
+                        return Math.floor(damage / 2);
+                    }
+                }
+            },
+            {
+                ...createCard('poison-box', '毒の箱', '使用したら消える。敵に3ターン継続する毒を与える', true),
+                onUse: () => {
+                    addStatusEffect('enemy', {
+                        name: '毒',
+                        type: 'debuff',
+                        duration: 3,
+                        effect: () => {
+                            // 毒ダメージは攻撃力の20%
+                            const poisonDamage = Math.max(1, Math.floor(gameState.playerAttack * 0.2));
+                            gameState.enemyHP = Math.max(0, gameState.enemyHP - poisonDamage);
+                            showMessage(`毒の効果！敵に${poisonDamage}ダメージ！`);
+                            addToLog('ダメージ', `毒: 敵に${poisonDamage}ダメージ (攻撃力${gameState.playerAttack}の20%)`);
+                            updateUI();
+                            if (gameState.enemyHP <= 0) {
+                                setTimeout(() => showStageClearNotification(), 500);
+                            }
+                        }
+                    });
+                    showMessage('敵に毒を与えました！');
+                    addToLog('効果', '毒の箱: 敵に3ターン継続する毒効果を付与');
+                    return true;
+                }
+            },
+            {
+                ...createCard('link-boost', '強化リンク', '3リンクでも4リンク並のダメージを与える'),
+                effect: (damage, connections) => {
+                    if (connections === 3) {
+                        addToLog('効果', `強化リンク: 3リンクが4リンク相当になる (${damage} → 50)`);
+                        return 50; // 4リンク相当のダメージ
+                    }
+                    return damage;
+                },
+                onActivate: () => {
+                    gameState.playerAttack += 5;
+                    updateUI();
+                    addToLog('効果', '強化リンク: 攻撃力+5');
+                },
+                onDeactivate: () => {
+                    gameState.playerAttack -= 5;
+                    updateUI();
+                    addToLog('効果', '強化リンク: 攻撃力-5');
+                }
+            },
+            {
+                ...createCard('counter-stance', '反撃の構え', '敵からダメージを受けた後、次の自分のターンの攻撃力+20'),
+                onDamageReceived: () => {
+                    addStatusEffect('player', {
+                        name: '反撃態勢',
+                        type: 'buff',
+                        duration: 1,
+                        attackBonus: 20
+                    });
+                    gameState.playerAttack += 20;
+                    updateUI();
+                    addToLog('効果', '反撃の構え: 攻撃力+20');
+                    setTimeout(() => {
+                        if (gameState.statusEffects.player.some(e => e.name === '反撃態勢')) {
+                            gameState.playerAttack -= 20;
+                            updateUI();
+                            addToLog('効果', '反撃の構え: 効果終了、攻撃力-20');
+                        }
+                    }, 2000);
+                }
+            },
+            {
+                ...createCard('battlefield-fog', '戦場の霧', '使用したら消える。3ターンの間、敵の攻撃が25%の確率で失敗する', true),
+                onUse: () => {
+                    addStatusEffect('enemy', {
+                        name: '霧に包まれた',
+                        type: 'debuff',
+                        duration: 3,
+                        missChance: 0.25
+                    });
+                    showMessage('戦場が霧に包まれました！');
+                    addToLog('効果', '戦場の霧: 3ターンの間、敵の攻撃が25%の確率で失敗');
+                    return true;
+                }
+            },
+            {
+                ...createCard('double-structure', '二重構造', '連続で置いた同じ列の箱はHP+10を得る'),
+                onPlacePiece: (col) => {
+                    if (gameState.lastColumn === col) {
+                        gameState.playerHP = Math.min(100, gameState.playerHP + 10);
+                        showMessage('<span class="healing-effect">二重構造: HP+10！</span>');
+                        addToLog('回復', '二重構造: HP+10');
+                        updateUI();
+                    }
+                    gameState.lastColumn = col;
+                    return 0;
+                }
+            },
+            {
+                ...createCard('all-or-nothing', '一か八か', 'HPが30%以下のとき、攻撃力が2倍になる'),
+                effect: (damage) => {
+                    if (gameState.playerHP <= 30) {
+                        addToLog('効果', `一か八か: HPが30%以下なので攻撃力2倍 (${damage} → ${damage * 2})`);
+                        return damage * 2;
+                    }
+                    return damage;
+                },
+                onActivate: () => {
+                    if (gameState.playerHP <= 30) {
+                        gameState.playerAttack *= 2;
+                        updateUI();
+                        addToLog('効果', `一か八か: HPが30%以下なので攻撃力2倍 (${gameState.playerAttack})`);
+                    }
+                },
+                onDeactivate: () => {
+                    if (gameState.playerHP <= 30) {
+                        gameState.playerAttack = Math.floor(gameState.playerAttack / 2);
+                        updateUI();
+                        addToLog('効果', `一か八か: 効果終了、攻撃力元に戻る (${gameState.playerAttack})`);
+                    }
+                }
+            },
+            {
+                ...createCard('critical-hit', 'クリティカルヒット', '20%の確率で攻撃が2倍になる'),
+                effect: (damage) => {
+                    if (Math.random() < 0.2) {
+                        showMessage('クリティカルヒット！');
+                        addToLog('効果', `クリティカルヒット発動: ダメージ2倍 (${damage} → ${damage * 2})`);
+                        return damage * 2;
+                    }
+                    return damage;
+                },
+                onActivate: () => {
+                    gameState.criticalChance = 20;
+                    updateUI();
+                    addToLog('効果', 'クリティカルヒット: クリティカル率+20%');
+                },
+                onDeactivate: () => {
+                    gameState.criticalChance = 0;
+                    updateUI();
+                    addToLog('効果', 'クリティカルヒット: クリティカル率-20%');
+                }
+            },
+            // 回復カード
+            {
+                ...createCard('life-sap', 'ライフサップ', '敵にダメージを与えたとき、その20%を自分のHPとして回復する'),
+                onDamageDealt: (damage) => {
+                    const healAmount = Math.floor(damage * 0.2);
+                    if (healAmount > 0) {
+                        gameState.playerHP = Math.min(100, gameState.playerHP + healAmount);
+                        showMessage(`<span class="healing-effect">ライフサップ：${healAmount}HP回復！</span>`);
+                        addToLog('回復', `ライフサップ: ${healAmount}HP回復 (与ダメージ${damage}の20%)`);
+                        updateUI();
+                    }
+                }
+            },
+            {
+                ...createCard('meditation', '瞑想', 'ターン開始時にHP+3回復する'),
+                onTurnStart: () => {
+                    const healAmount = 3;
+                    gameState.playerHP = Math.min(100, gameState.playerHP + healAmount);
+                    showMessage(`<span class="healing-effect">瞑想: ${healAmount}HP回復！</span>`);
+                    addToLog('回復', `瞑想: HP+${healAmount}`);
+                    updateUI();
+                    return false; // 追加ターンは与えない
+                }
+            },
+            {
+                ...createCard('vitality-aura', '生命オーラ', '3リンク以上すると、そのリンク数分のHPを回復する'),
+                onLinkCompleted: (connections) => {
+                    if (connections >= 3) {
+                        gameState.playerHP = Math.min(100, gameState.playerHP + connections);
+                        showMessage(`<span class="healing-effect">生命オーラ: ${connections}HP回復！</span>`);
+                        addToLog('回復', `生命オーラ: ${connections}HP回復 (${connections}リンク)`);
+                        updateUI();
+                    }
+                }
+            },
+            {
+                ...createCard('soul-link', 'ソウルリンク', '攻撃力+5。ただし毎ターン終了時にHP-1する'),
+                onActivate: () => {
+                    gameState.playerAttack += 5;
+                    updateUI();
+                    addToLog('効果', 'ソウルリンク: 攻撃力+5');
+                },
+                onDeactivate: () => {
+                    gameState.playerAttack -= 5;
+                    updateUI();
+                    addToLog('効果', 'ソウルリンク: 攻撃力-5');
+                },
+                onTurnEnd: () => {
+                    gameState.playerHP = Math.max(1, gameState.playerHP - 1);
+                    showMessage('ソウルリンク: HP-1...');
+                    addToLog('効果', 'ソウルリンク: HP-1');
+                    updateUI();
+                }
+            },
+            {
+                ...createCard('regeneration', '再生', '使用したら消える。5ターンの間、毎ターン開始時にHP+2回復する', true),
+                onUse: () => {
+                    addStatusEffect('player', {
+                        name: '再生',
+                        type: 'buff',
+                        duration: 5,
+                        effect: () => {
+                            const healAmount = 2;
+                            gameState.playerHP = Math.min(100, gameState.playerHP + healAmount);
+                            showMessage(`<span class="healing-effect">再生: ${healAmount}HP回復！</span>`);
+                            addToLog('回復', `再生: HP+${healAmount}`);
+                            updateUI();
+                        }
+                    });
+                    showMessage('再生効果が発動しました！');
+                    addToLog('効果', '再生: 5ターンの間、毎ターン開始時にHP+2回復');
+                    return true;
+                }
+            }
+        ];
+
+        // ダメージ計算
+        function calculateDamage(baseDamage, attackerAttack, defenderDefense) {
+            // 攻撃力は基本ダメージに乗算、防御力は減算
+            let calculatedDamage = Math.floor(baseDamage * (1 + attackerAttack / 20)) - defenderDefense;
+            return Math.max(1, calculatedDamage); // 最低1ダメージは保証
+        }
+
+        // ログにエントリを追加
+        function addToLog(type, message) {
+            const timestamp = new Date().toLocaleTimeString();
+            gameState.log.push({
+                type,
+                message,
+                turn: gameState.turn,
+                timestamp
+            });
+            updateLogPanel();
+        }
+
+        // ログパネルを更新
+        function updateLogPanel() {
+            const logPanel = document.getElementById('logPanel');
+            if (!logPanel) return;
+
+            // 最新の10項目だけ表示
+            const recentLogs = gameState.log.slice(-20);
+            
+            // ログをクリア
+            logPanel.innerHTML = '';
+            
+            // 新しいログエントリをグループ化（ターンごと）
+            let currentTurn = null;
+            
+            for (const entry of recentLogs) {
+                // ターンが変わったら新しいグループヘッダーを追加
+                if (currentTurn !== entry.turn) {
+                    currentTurn = entry.turn;
+                    const turnHeader = document.createElement('div');
+                    turnHeader.className = 'log-turn';
+                    turnHeader.textContent = `===== ターン ${entry.turn} =====`;
+                    logPanel.appendChild(turnHeader);
+                }
+                
+                // ログエントリを追加
+                const logEntry = document.createElement('div');
+                logEntry.className = `log-entry log-${entry.type.toLowerCase()}`;
+                
+                if (entry.type === '計算') {
+                    logEntry.className += ' log-calculation';
+                }
+                
+                logEntry.textContent = `${entry.message}`;
+                logPanel.appendChild(logEntry);
+            }
+            
+            // スクロールを一番下に
+            logPanel.scrollTop = logPanel.scrollHeight;
+        }
+
+        // ステータス効果を追加
+        function addStatusEffect(target, effect) {
+            gameState.statusEffects[target].push(effect);
+            updateStatusEffectsDisplay();
+        }
+
+        // ステータス効果を処理
+        function processStatusEffects() {
+            // プレイヤーの効果を処理
+            for (let i = gameState.statusEffects.player.length - 1; i >= 0; i--) {
+                const effect = gameState.statusEffects.player[i];
+                
+                // 効果の適用
+                if (effect.effect) {
+                    effect.effect();
+                }
+                
+                // 持続時間の更新
+                if (effect.duration > 0) {
+                    effect.duration--;
+                    if (effect.duration === 0) {
+                        // 効果が切れる時に攻撃力ボーナスを戻す
+                        if (effect.attackBonus) {
+                            gameState.playerAttack -= effect.attackBonus;
+                            updateUI();
+                            addToLog('効果', `${effect.name}: 効果終了、攻撃力-${effect.attackBonus}`);
+                        }
+                        gameState.statusEffects.player.splice(i, 1);
+                    }
+                }
+            }
+            
+            // 敵の効果を処理
+            for (let i = gameState.statusEffects.enemy.length - 1; i >= 0; i--) {
+                const effect = gameState.statusEffects.enemy[i];
+                
+                // 効果の適用
+                if (effect.effect) {
+                    effect.effect();
+                }
+                
+                // 持続時間の更新
+                if (effect.duration > 0) {
+                    effect.duration--;
+                    if (effect.duration === 0) {
+                        gameState.statusEffects.enemy.splice(i, 1);
+                    }
+                }
+            }
+            
+            updateStatusEffectsDisplay();
+        }
+
+        // ステータス効果表示の更新
+        function updateStatusEffectsDisplay() {
+            // プレイヤー側の更新
+            const playerEffectsContainer = document.getElementById('playerStatusEffects');
+            playerEffectsContainer.innerHTML = '';
+            
+            gameState.statusEffects.player.forEach(effect => {
+                const effectElement = document.createElement('div');
+                effectElement.className = `status-effect ${effect.type}`;
+                effectElement.textContent = effect.duration > 0 
+                    ? `${effect.name} (${effect.duration})` 
+                    : effect.name;
+                playerEffectsContainer.appendChild(effectElement);
+            });
+            
+            // 敵側の更新
+            const enemyEffectsContainer = document.getElementById('enemyStatusEffects');
+            enemyEffectsContainer.innerHTML = '';
+            
+            gameState.statusEffects.enemy.forEach(effect => {
+                const effectElement = document.createElement('div');
+                effectElement.className = `status-effect ${effect.type}`;
+                effectElement.textContent = effect.duration > 0 
+                    ? `${effect.name} (${effect.duration})` 
+                    : effect.name;
+                enemyEffectsContainer.appendChild(effectElement);
+            });
+        }
+
+        // DOM要素の取得
+        const elements = {
+            gameBoard: document.getElementById('gameBoard'),
+            playerHP: document.getElementById('playerHP'),
+            enemyHP: document.getElementById('enemyHP'),
+            enemyMaxHP: document.getElementById('enemyMaxHP'),
+            playerHealthFill: document.getElementById('playerHealthFill'),
+            enemyHealthFill: document.getElementById('enemyHealthFill'),
+            turnIndicator: document.getElementById('turnIndicator'),
+            stageNumber: document.getElementById('stageNumber'),
+            turnCounter: document.getElementById('turnCounter'),
+            gameOverPanel: document.getElementById('gameOverPanel'),
+            gameOverMessage: document.getElementById('gameOverMessage'),
+            restartButton: document.getElementById('restartButton'),
+            cardsContainer: document.getElementById('cardsContainer'),
+            playerAttack: document.getElementById('playerAttack'),
+            playerDefense: document.getElementById('playerDefense'),
+            enemyAttack: document.getElementById('enemyAttack'),
+            enemyDefense: document.getElementById('enemyDefense'),
+            consecutiveHits: document.getElementById('consecutiveHits'),
+            criticalChance: document.getElementById('criticalChance'),
+            activeCardCount: document.getElementById('activeCardCount'),
+            logPanel: document.getElementById('logPanel'),
+            toggleLogButton: document.getElementById('toggleLogButton'),
+            messagesContainer: document.getElementById('messagesContainer'),
+            stageIndicator: document.getElementById('stageIndicator')
+        };
+
+        // ログ表示切り替え
+        elements.toggleLogButton.addEventListener('click', () => {
+            if (elements.logPanel.style.display === 'none') {
+                elements.logPanel.style.display = 'block';
+                elements.toggleLogButton.textContent = 'ログを隠す';
+            } else {
+                elements.logPanel.style.display = 'none';
+                elements.toggleLogButton.textContent = 'ログを表示';
+            }
+        });
+
+        // ゲーム初期化
+        function initGame() {
+            // ボードの初期化
+            elements.gameBoard.innerHTML = '';
+            elements.gameBoard.appendChild(elements.stageIndicator);
+            
+            for (let row = 0; row < gameState.boardHeight; row++) {
+                for (let col = 0; col < gameState.boardWidth; col++) {
+                    const cell = document.createElement('div');
+                    cell.className = 'cell';
+                    cell.dataset.row = row;
+                    cell.dataset.col = col;
+                    cell.addEventListener('click', () => handleCellClick(col));
+                    elements.gameBoard.appendChild(cell);
+                }
+            }
+
+            // ゲーム状態のリセット
+            Object.assign(gameState, {
+                board: Array(gameState.boardHeight).fill().map(() => Array(gameState.boardWidth).fill(null)),
+                currentPlayer: 'player',
+                playerHP: 100,
+                enemyHP: 10,
+                enemyMaxHP: 10,
+                playerAttack: 10,
+                playerDefense: 0,
+                enemyAttack: 5,
+                enemyDefense: 0,
+                criticalChance: 0,
+                stage: 1,
+                turn: 1,
+                gameOver: false,
+                consecutiveDamageCount: 0,
+                masteryCounter: 0,
+                masteryBonus: 0,
+                playerCards: [],
+                activeCards: [],
+                statusEffects: {
+                    player: [],
+                    enemy: []
+                },
+                lastColumn: -1,
+                sameColumnCounter: 0,
+                cardSelectionInProgress: false,
+                isBossStage: false,
+                animationInProgress: false,
+                log: []
+            });
+
+            // 初期カードを追加
+            if (gameState.playerCards.length === 0) {
+                // 初期カードとして3枚からランダムに2枚を選ぶ
+                const initialCardPool = [
+                    { ...cardDefinitions[0] }, // フルパワー
+                    { ...cardDefinitions.find(card => card.id === 'meditation') }, // 瞑想
+                    { ...cardDefinitions.find(card => card.id === 'critical-hit') } // クリティカルヒット
+                ];
+                
+                // ランダムに2枚選択
+                for (let i = 0; i < 2; i++) {
+                    const randomIndex = Math.floor(Math.random() * initialCardPool.length);
+                    gameState.playerCards.push(initialCardPool[randomIndex]);
+                    initialCardPool.splice(randomIndex, 1);
+                }
+            }
+
+            // ステージ表示を更新
+            elements.stageIndicator.textContent = `ステージ ${gameState.stage}`;
+            elements.stageIndicator.className = 'stage-indicator';
+
+            // ログの初期化
+            addToLog('システム', 'ゲーム開始！');
+            addToLog('システム', `ステージ1: 敵HP=${gameState.enemyMaxHP}, 攻撃力=${gameState.enemyAttack}, 防御力=${gameState.enemyDefense}`);
+
+            updateUI();
+            renderCards();
+        }
+
+        // セルクリックのハンドラ
+        function handleCellClick(col) {
+            if (gameState.gameOver || gameState.currentPlayer !== 'player' || gameState.cardSelectionInProgress || gameState.animationInProgress) return;
+
+            const row = findAvailableRow(col);
+            if (row === -1) return; // 列がいっぱいの場合
+
+            // アニメーション中フラグを立てる
+            gameState.animationInProgress = true;
+
+            // 一心不乱と二重構造カードの効果をチェック
+            let attackBonus = 0;
+            gameState.activeCards.forEach(card => {
+                if (card.onPlacePiece) {
+                    attackBonus += card.onPlacePiece(col);
+                }
+            });
+            
+            if (attackBonus > 0) {
+                updateUI();
+            }
+
+            // 箱落下のアニメーション
+            animatePieceFalling(row, col, 'player', () => {
+                // アニメーション完了後の処理
+                
+                // リンクチェックとダメージ計算
+                const connections = checkConnections(row, col, 'player');
+                const didDealDamage = applyDamage(connections, 'player');
+                
+                // 「上達への道」カードの効果を適用
+                if (didDealDamage) {
+                    const masteryCard = gameState.activeCards.find(card => card.id === 'mastery-path');
+                    if (masteryCard?.onDamageDealt) {
+                        masteryCard.onDamageDealt();
+                    }
+                    
+                    // 「ライフサップ」の効果を適用
+                    const lifeSapCard = gameState.activeCards.find(card => card.id === 'life-sap');
+                    if (lifeSapCard?.onDamageDealt) {
+                        // 与えたダメージの20%を回復
+                        const damage = Math.min(gameState.enemyMaxHP, gameState.enemyHP + connections) - gameState.enemyHP;
+                        lifeSapCard.onDamageDealt(damage);
+                    }
+                    
+                    // 「生命オーラ」の効果を適用
+                    const vitalityCard = gameState.activeCards.find(card => card.id === 'vitality-aura');
+                    if (vitalityCard?.onLinkCompleted && connections >= 3) {
+                        vitalityCard.onLinkCompleted(connections);
+                    }
+                } else {
+                    // ダメージを与えられなかった場合、連続カウントをリセット
+                    gameState.masteryCounter = 0;
+                }
+
+                // ボード変更時のカード効果を適用
+                gameState.activeCards.forEach(card => {
+                    if (card.onBoardChange) {
+                        card.onBoardChange();
+                    }
+                });
+
+                // 勝利チェック
+                if (gameState.enemyHP <= 0) {
+                    showStageClearNotification();
+                    gameState.animationInProgress = false;
+                    return;
+                }
+
+                // カードのクールダウンを減らす
+                updateCardCooldowns();
+
+                // ソウルリンクのターン終了時効果
+                const soulLinkCard = gameState.activeCards.find(card => card.id === 'soul-link');
+                if (soulLinkCard?.onTurnEnd) {
+                    soulLinkCard.onTurnEnd();
+                }
+
+                // ターン終了と敵のターン
+                gameState.currentPlayer = 'enemy';
+                gameState.turn++;
+                updateUI();
+                
+                addToLog('ターン', `ターン${gameState.turn}開始: 敵のターン`);
+                
+                // アニメーション完了
+                gameState.animationInProgress = false;
+                
+                setTimeout(enemyTurn, 500);
+            });
+        }
+
+        // 箱の落下アニメーション
+        function animatePieceFalling(row, col, player, callback) {
+            // 一時的な箱要素を作成
+            const piece = document.createElement('div');
+            piece.className = `${player}-piece falling-piece`;
+            if (player === 'enemy' && gameState.isBossStage) {
+                piece.classList.add('boss-piece');
+            }
+            
+            // ボードの位置を取得
+            const boardRect = elements.gameBoard.getBoundingClientRect();
+            const cellWidth = boardRect.width / gameState.boardWidth;
+            const cellHeight = boardRect.height / gameState.boardHeight;
+            
+            // 箱の初期位置（一番上）
+            piece.style.left = `${col * cellWidth + 5}px`;
+            piece.style.top = '0px';
+            piece.style.width = `${cellWidth - 10}px`;
+            piece.style.height = `${cellHeight - 10}px`;
+            
+            // ボードに箱を追加
+            elements.gameBoard.appendChild(piece);
+            
+            // 少し待ってから落下アニメーション開始（CSSの遷移が効くように）
+            setTimeout(() => {
+                // 最終位置を計算
+                const finalTop = row * cellHeight + 5;
+                piece.style.top = `${finalTop}px`;
+                
+                // アニメーション完了時の処理
+                piece.addEventListener('transitionend', () => {
+                    // 一時的な箱を削除
+                    piece.remove();
+                    
+                    // ゲーム状態を更新
+                    gameState.board[row][col] = player;
+                    renderBoard();
+                    
+                    // コールバックを実行
+                    if (callback) callback();
+                }, { once: true });
+            }, 50);
+        }
+
+        // 敵のターン
+        function enemyTurn() {
+            if (gameState.gameOver || gameState.cardSelectionInProgress || gameState.animationInProgress) return;
+
+            // 瞑想などのターン開始時の効果
+            let skipTurn = false;
+            gameState.activeCards.forEach(card => {
+                if (card.onTurnStart) {
+                    const result = card.onTurnStart();
+                    if (result === true) {
+                        skipTurn = true;
+                    }
+                }
+            });
+
+            // ステータス効果を処理
+            processStatusEffects();
+
+            // 敵の攻撃が霧で失敗するかチェック
+            const fogEffect = gameState.statusEffects.enemy.find(effect => effect.missChance);
+            if (fogEffect && Math.random() < fogEffect.missChance) {
+                showMessage('霧の効果！敵の攻撃が失敗した！');
+                addToLog('効果', '霧の効果: 敵の攻撃が失敗');
+                
+                gameState.currentPlayer = 'player';
+                gameState.turn++;
+                updateUI();
+                addToLog('ターン', `ターン${gameState.turn}開始: プレイヤーのターン`);
+                return;
+            }
+
+            // アニメーション中フラグを立てる
+            gameState.animationInProgress = true;
+
+            // ランダムな列を選択
+            let col, row;
+            do {
+                col = Math.floor(Math.random() * gameState.boardWidth);
+                row = findAvailableRow(col);
+            } while (row === -1);
+
+            // 敵の手を処理（アニメーション付き）
+            animatePieceFalling(row, col, 'enemy', () => {
+                // リンクチェックとダメージ計算
+                const connections = checkConnections(row, col, 'enemy');
+                applyDamage(connections, 'enemy');
+
+                // 敗北チェック
+                if (gameState.playerHP <= 0) {
+                    endGame(false);
+                    gameState.animationInProgress = false;
+                    return;
+                }
+
+                // ラッキーセブンカードの効果をチェック
+                const luckySeven = gameState.activeCards.find(card => card.id === 'lucky-seven');
+                const extraTurn = luckySeven?.onTurnStart?.() || false;
+
+                // プレイヤーターンに戻る
+                gameState.currentPlayer = 'player';
+                gameState.turn++;
+                updateUI();
+                
+                addToLog('ターン', `ターン${gameState.turn}開始: プレイヤーのターン`);
+
+                // アニメーション完了
+                gameState.animationInProgress = false;
+
+                // ラッキーセブンが発動した場合は追加ターン
+                if (extraTurn) {
+                    showMessage('ラッキーセブン発動！追加で手を打てます！');
+                }
+            });
+        }
+
+        // カードのクールダウンを更新
+        function updateCardCooldowns() {
+            gameState.playerCards.forEach(card => {
+                if (card.cooldown > 0) {
+                    card.cooldown--;
+                }
+            });
+            renderCards();
+        }
+
+        // 利用可能な行を見つける（重力効果）
+        function findAvailableRow(col) {
+            for (let row = gameState.boardHeight - 1; row >= 0; row--) {
+                if (gameState.board[row][col] === null) {
+                    return row;
+                }
+            }
+            return -1; // 列がいっぱいの場合
+        }
+
+        // リンクのチェック
+        function checkConnections(row, col, player) {
+            const directions = [
+                [0, 1],   // 水平
+                [1, 0],   // 垂直
+                [1, 1],   // 右下斜め
+                [1, -1]   // 左下斜め
+            ];
+
+            let maxConnections = 0;
+
+            for (const [dx, dy] of directions) {
+                let count = 1; // 自分自身を含む
+
+                // 両方向にカウント
+                for (const [dirX, dirY] of [[dx, dy], [-dx, -dy]]) {
+                    let r = row + dirX;
+                    let c = col + dirY;
+                    
+                    while (
+                        r >= 0 && r < gameState.boardHeight && 
+                        c >= 0 && c < gameState.boardWidth && 
+                        gameState.board[r][c] === player
+                    ) {
+                        count++;
+                        r += dirX;
+                        c += dirY;
+                    }
+                }
+
+                maxConnections = Math.max(maxConnections, count);
+            }
+
+            return maxConnections;
+        }
+
+        // ダメージを適用
+        function applyDamage(connections, player) {
+            if (connections < 3) {
+                // リンクが不十分な場合は連続カウントをリセット
+                if (player === 'player') {
+                    gameState.consecutiveDamageCount = 0;
+                }
+                return false; // ダメージなし
+            }
+
+            // 基本ダメージ計算
+            let baseDamage = connections === 3 ? 10 : 50;
+            let damage = baseDamage;
+
+            if (player === 'player') {
+                // カードの効果を適用
+                addToLog('ダメージ', `プレイヤーの攻撃: ${connections}リンク、基本ダメージ=${baseDamage}`);
+                
+                // 長蛇の列カードの効果を適用（5連続リンク）
+                const snakeLine = gameState.activeCards.find(card => card.id === 'snake-line');
+                if (snakeLine?.effect) {
+                    damage = snakeLine.effect(damage, connections);
+                }
+
+                // 強化リンクカードの効果
+                const linkBoost = gameState.activeCards.find(card => card.id === 'link-boost');
+                if (linkBoost?.effect) {
+                    damage = linkBoost.effect(damage, connections);
+                }
+
+                // ステータス効果による攻撃ボーナス
+                const attackBuffs = gameState.statusEffects.player.filter(effect => effect.attackBonus);
+                attackBuffs.forEach(buff => {
+                    const oldDamage = damage;
+                    damage += buff.attackBonus;
+                    addToLog('計算', `${buff.name}効果: ダメージ+${buff.attackBonus} (${oldDamage} → ${damage})`);
+                });
+
+                // その他のカード効果を適用
+                gameState.activeCards.forEach(card => {
+                    if (card.effect && !['snake-line', 'link-boost'].includes(card.id)) {
+                        const oldDamage = damage;
+                        damage = card.effect(damage, connections);
+                        if (oldDamage !== damage) {
+                            addToLog('計算', `${card.name}効果: ダメージ変化 (${oldDamage} → ${damage})`);
+                        }
+                    }
+                });
+
+                // 攻撃力と防御力を適用
+                const preFinalDamage = damage;
+                damage = calculateDamage(damage, gameState.playerAttack, gameState.enemyDefense);
+                addToLog('計算', `攻撃力/防御力補正: ${preFinalDamage} × ${(1 + gameState.playerAttack / 20).toFixed(2)} - ${gameState.enemyDefense} = ${damage}`);
+
+                // 連続ダメージカウント更新
+                gameState.consecutiveDamageCount++;
+                elements.consecutiveHits.textContent = gameState.consecutiveDamageCount;
+
+                // クリティカルヒットのチェック
+                const criticalCard = gameState.activeCards.find(card => card.id === 'critical-hit');
+                if (criticalCard && Math.random() < 0.2) {
+                    const oldDamage = damage;
+                    damage *= 2;
+                    showMessage('クリティカルヒット！ダメージ2倍！');
+                    addToLog('効果', `クリティカルヒット: ダメージ2倍 (${oldDamage} → ${damage})`);
+                }
+
+                gameState.enemyHP = Math.max(0, gameState.enemyHP - damage);
+                addToLog('ダメージ', `敵に${damage}ダメージ! 残りHP: ${gameState.enemyHP}/${gameState.enemyMaxHP}`);
+            } else {
+                // 敵のダメージ計算
+                addToLog('ダメージ', `敵の攻撃: ${connections}リンク、基本ダメージ=${baseDamage}`);
+                
+                // 攻撃力と防御力を適用
+                const preFinalDamage = damage;
+                damage = calculateDamage(damage, gameState.enemyAttack, gameState.playerDefense);
+                addToLog('計算', `攻撃力/防御力補正: ${preFinalDamage} × ${(1 + gameState.enemyAttack / 20).toFixed(2)} - ${gameState.playerDefense} = ${damage}`);
+                
+                // 敵からのダメージに防御効果を適用
+                gameState.activeCards.forEach(card => {
+                    if (card.receiveDamageEffect) {
+                        const oldDamage = damage;
+                        damage = card.receiveDamageEffect(damage);
+                        if (oldDamage !== damage) {
+                            addToLog('計算', `${card.name}効果: 被ダメージ減少 (${oldDamage} → ${damage})`);
+                        }
+                    }
+                });
+
+                gameState.playerHP = Math.max(0, gameState.playerHP - damage);
+                addToLog('ダメージ', `プレイヤーに${damage}ダメージ! 残りHP: ${gameState.playerHP}/100`);
+                
+                // 反撃の構えカードの効果
+                const counterCard = gameState.activeCards.find(card => card.id === 'counter-stance');
+                if (counterCard?.onDamageReceived) {
+                    counterCard.onDamageReceived();
+                }
+            }
+
+            // ダメージメッセージ表示
+            if (damage > 0) {
+                let message = '';
+                
+                if (player === 'player') {
+                    message = gameState.consecutiveDamageCount > 1 
+                        ? `${gameState.consecutiveDamageCount}連鎖！${connections}リンク！<span class="damage-effect">${damage}ダメージ！</span>`
+                        : `${connections}リンク！<span class="damage-effect">${damage}ダメージ！</span>`;
+                } else {
+                    message = `敵が${connections}リンク！<span class="damage-effect">${damage}ダメージ！</span>`;
+                }
+                
+                showMessage(message);
+            }
+
+            updateUI();
+            return true; // ダメージを与えた
+        }
+
+        // ステージクリア通知を表示
+        function showStageClearNotification() {
+            // カード選択中フラグを立てる
+            gameState.cardSelectionInProgress = true;
+            
+            // 通知要素を作成
+            const notification = document.createElement('div');
+            notification.className = 'stage-clear-notification';
+            notification.textContent = `ステージ${gameState.stage}クリア！`;
+            document.body.appendChild(notification);
+            
+            // ログに記録
+            addToLog('システム', `ステージ${gameState.stage}クリア！`);
+            
+            // 少し待ってからカード選択画面を表示
+            setTimeout(() => {
+                notification.remove();
+                showCardSelectionScreen();
+            }, 1500);
+        }
+
+        // カード選択画面を表示
+        function showCardSelectionScreen() {
+            // 利用可能なカードから選択できるカードを2枚選ぶ
+            const availableCards = cardDefinitions.filter(
+                card => !gameState.playerCards.some(playerCard => playerCard.id === card.id)
+            );
+            
+            if (availableCards.length === 0) {
+                // 利用可能なカードがない場合は次のステージへ進む
+                handleStageComplete([]);
+                return;
+            }
+            
+            // ランダムに2枚選択
+            const cardOptions = [];
+            for (let i = 0; i < Math.min(2, availableCards.length); i++) {
+                const randomIndex = Math.floor(Math.random() * availableCards.length);
+                cardOptions.push({ ...availableCards[randomIndex] });
+                availableCards.splice(randomIndex, 1);
+            }
+            
+            // モーダルを作成
+            const modal = document.createElement('div');
+            modal.className = 'card-selection-modal';
+            
+            const title = document.createElement('div');
+            title.className = 'card-selection-title';
+            title.textContent = '新しいカードを1枚選んでください';
+            modal.appendChild(title);
+            
+            const cardContainer = document.createElement('div');
+            cardContainer.className = 'card-selection-options';
+            
+            // 各カードの作成
+            cardOptions.forEach(card => {
+                const cardElement = document.createElement('div');
+                cardElement.className = 'card';
+                if (card.consumable) {
+                    cardElement.classList.add('consumable-card');
+                }
+                
+                cardElement.innerHTML = `
+                    <div class="card-title">${card.name}</div>
+                    <div class="card-desc">${card.description}</div>
+                `;
+                
+                cardElement.addEventListener('click', () => {
+                    modal.remove();
+                    handleStageComplete([card]);
+                });
+                
+                cardContainer.appendChild(cardElement);
+            });
+            
+            modal.appendChild(cardContainer);
+            document.body.appendChild(modal);
+        }
+
+        // ステージクリア時の処理
+        function handleStageComplete(selectedCards = []) {
+            gameState.cardSelectionInProgress = false;
+            
+            gameState.stage++;
+            
+            // 5ステージごとにボス敵（強化敵）
+            const isBossStage = gameState.stage % 5 === 0;
+            gameState.isBossStage = isBossStage;
+            
+            // 基本的な敵のステータス
+            let baseEnemyHP = gameState.stage * 10;
+            let baseEnemyAttack = 5 + Math.floor(gameState.stage / 2);
+            let baseEnemyDefense = Math.floor(gameState.stage / 3);
+            
+            // ボスステージの場合、大幅強化
+            if (isBossStage) {
+                baseEnemyHP *= 2;
+                baseEnemyAttack *= 1.5;
+                baseEnemyDefense *= 1.5;
+                addToLog('システム', `=== ボスステージ ${gameState.stage} ===`);
+            }
+            
+            gameState.enemyMaxHP = baseEnemyHP;
+            gameState.enemyHP = baseEnemyHP;
+            gameState.enemyAttack = Math.floor(baseEnemyAttack);
+            gameState.enemyDefense = Math.floor(baseEnemyDefense);
+            
+            // ログに記録
+            addToLog('システム', `ステージ${gameState.stage}: 敵HP=${gameState.enemyMaxHP}, 攻撃力=${gameState.enemyAttack}, 防御力=${gameState.enemyDefense}`);
+            
+            // 選択したカードを追加
+            if (selectedCards.length > 0) {
+                gameState.playerCards.push(...selectedCards);
+                showMessage(`新しいカード「${selectedCards[0].name}」を獲得しました！`);
+                addToLog('システム', `新しいカード「${selectedCards[0].name}」を獲得`);
+            }
+
+            // ステージ固有のカードをリセット（最強の盾の効果など）
+            gameState.activeCards = gameState.activeCards.filter(card => card.id !== 'ultimate-shield-effect');
+            
+            // ステージごとの効果をリセット
+            gameState.statusEffects.player = gameState.statusEffects.player.filter(effect => effect.duration === -1);
+            gameState.statusEffects.enemy = [];
+
+            // ボードをリセットして次のステージへ
+            gameState.board = Array(gameState.boardHeight).fill().map(() => Array(gameState.boardWidth).fill(null));
+            gameState.currentPlayer = 'player';
+            gameState.consecutiveDamageCount = 0;
+            renderBoard();
+            renderCards();
+            updateStatusEffectsDisplay();
+            updateUI();
+            
+            // ステージ表示を更新
+            elements.stageIndicator.textContent = `ステージ ${gameState.stage}`;
+            elements.stageIndicator.className = 'stage-indicator';
+            if (isBossStage) {
+                elements.stageIndicator.classList.add('boss-stage');
+                elements.stageIndicator.textContent += ' [ボス]';
+            }
+        }
+
+        // ゲーム終了
+        function endGame(isWin) {
+            gameState.gameOver = true;
+            elements.gameOverMessage.textContent = isWin ? 'ゲームクリア！おめでとう！' : 'ゲームオーバー...';
+            elements.gameOverPanel.style.display = 'block';
+            addToLog('システム', isWin ? 'ゲームクリア！おめでとう！' : 'ゲームオーバー...');
+        }
+
+        // 2x2マスのチェック（鉄壁カード用）
+        function checkFor2x2Square() {
+            for (let row = 0; row < gameState.boardHeight - 1; row++) {
+                for (let col = 0; col < gameState.boardWidth - 1; col++) {
+                    if (
+                        gameState.board[row][col] === 'player' &&
+                        gameState.board[row][col + 1] === 'player' &&
+                        gameState.board[row + 1][col] === 'player' &&
+                        gameState.board[row + 1][col + 1] === 'player'
+                    ) {
+                        return true;
+                    }
+                }
+            }
+            return false;
+        }
+
+        // 最下段のプレイヤー駒をカウント（縁の下の力持ちカード用）
+        function countBottomRowPieces() {
+            let count = 0;
+            const bottomRow = gameState.boardHeight - 1;
+            for (let col = 0; col < gameState.boardWidth; col++) {
+                if (gameState.board[bottomRow][col] === 'player') {
+                    count++;
+                }
+            }
+            return count;
+        }
+
+        // ボードの描画
+        function renderBoard() {
+            const cells = document.querySelectorAll('.cell');
+            cells.forEach((cell, index) => {
+                const row = Math.floor(index / gameState.boardWidth);
+                const col = index % gameState.boardWidth;
+                
+                // セルの内容をクリア
+                cell.innerHTML = '';
+                
+                const piece = gameState.board[row][col];
+                if (piece) {
+                    const pieceElement = document.createElement('div');
+                    pieceElement.className = piece === 'player' ? 'player-piece' : 'enemy-piece';
+                    
+                    // ボスステージでの敵コマの見た目変更
+                    if (piece === 'enemy' && gameState.isBossStage) {
+                        pieceElement.classList.add('boss-piece');
+                    }
+                    
+                    cell.appendChild(pieceElement);
+                }
+            });
+        }
+
+        // カードの描画
+        function renderCards() {
+            elements.cardsContainer.innerHTML = '';
+            elements.activeCardCount.textContent = gameState.activeCards.length;
+            
+            gameState.playerCards.forEach(card => {
+                const isActive = gameState.activeCards.some(c => c.id === card.id);
+                const cardElement = document.createElement('div');
+                cardElement.className = `card ${isActive ? 'active-card' : ''} ${card.consumable ? 'consumable-card' : ''}`;
+                cardElement.dataset.cardId = card.id;
+                
+                cardElement.innerHTML = `
+                    <div class="card-title">${card.name}</div>
+                    <div class="card-desc">${card.description}</div>
+                `;
+                
+                // クールダウン表示
+                if (card.cooldown > 0) {
+                    const cooldownElement = document.createElement('div');
+                    cooldownElement.className = 'cooldown';
+                    cooldownElement.textContent = card.cooldown;
+                    cardElement.appendChild(cooldownElement);
+                    cardElement.style.opacity = '0.7';
+                } else {
+                    cardElement.addEventListener('click', () => handleCardClick(card));
+                }
+                
+                elements.cardsContainer.appendChild(cardElement);
+            });
+        }
+
+        // カードクリック処理
+        function handleCardClick(card) {
+            if (card.cooldown > 0 || gameState.cardSelectionInProgress || gameState.animationInProgress) return;
+            
+            if (card.consumable) {
+                // 消費アイテムの処理
+                if (card.onUse && card.onUse()) {
+                    // カードを削除
+                    gameState.playerCards = gameState.playerCards.filter(c => c.id !== card.id);
+                    gameState.activeCards = gameState.activeCards.filter(c => c.id !== card.id);
+                }
+            } else {
+                // 通常カードの切り替え
+                const isActive = gameState.activeCards.some(c => c.id === card.id);
+                
+                if (isActive) {
+                    // カードを非アクティブにする時の処理
+                    gameState.activeCards = gameState.activeCards.filter(c => c.id !== card.id);
+                    if (card.onDeactivate) {
+                        card.onDeactivate();
+                    }
+                } else if (gameState.activeCards.length < 3) {
+                    // カードをアクティブにする時の処理
+                    gameState.activeCards.push(card);
+                    if (card.onActivate) {
+                        card.onActivate();
+                    }
+                } else {
+                    showMessage('アクティブカードは最大3枚までです');
+                    return;
+                }
+            }
+            
+            renderCards();
+            updateUI();
+        }
+
+        // UIの更新
+        function updateUI() {
+            elements.playerHP.textContent = gameState.playerHP;
+            elements.enemyHP.textContent = gameState.enemyHP;
+            elements.enemyMaxHP.textContent = gameState.enemyMaxHP;
+            
+            elements.playerHealthFill.style.width = `${gameState.playerHP}%`;
+            elements.enemyHealthFill.style.width = `${(gameState.enemyHP / gameState.enemyMaxHP) * 100}%`;
+            
+            elements.stageNumber.textContent = gameState.stage;
+            elements.turnCounter.textContent = gameState.turn;
+            elements.turnIndicator.textContent = gameState.currentPlayer === 'player' ? 'あなたのターン' : '敵のターン';
+            
+            // ステータス値の更新
+            elements.playerAttack.textContent = gameState.playerAttack;
+            elements.playerDefense.textContent = gameState.playerDefense;
+            elements.enemyAttack.textContent = gameState.enemyAttack;
+            elements.enemyDefense.textContent = gameState.enemyDefense;
+            elements.consecutiveHits.textContent = gameState.consecutiveDamageCount;
+            elements.criticalChance.textContent = gameState.criticalChance;
+        }
+
+        // メッセージ表示
+        function showMessage(message) {
+            const messagesContainer = document.getElementById('messagesContainer');
+            
+            // メッセージ要素を作成
+            const messageElement = document.createElement('div');
+            messageElement.className = 'message';
+            messageElement.innerHTML = message; // HTMLを許可して色付けなどを可能に
+            
+            // メッセージを追加
+            messagesContainer.appendChild(messageElement);
+            
+            // 一定時間後にメッセージを削除
+            setTimeout(() => {
+                messageElement.remove();
+            }, 3000);
+        }
+
+        // イベントリスナー
+        elements.restartButton.addEventListener('click', () => {
+            elements.gameOverPanel.style.display = 'none';
+            initGame();
+        });
+
+        // ゲーム開始
+        initGame();
+    </script>
+</body>
+</html>
