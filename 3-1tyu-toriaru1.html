@@ -103,7 +103,7 @@
             height: 50px;
             border-radius: 4px;
             position: relative;
-            z-index: 1500;
+            z-index: 500;
         }
         .player-piece {
             background-color: #ffeb3b;
@@ -164,6 +164,7 @@
             border-radius: 10px;
             text-align: center;
             display: none;
+            z-index: 2000;
         }
         .game-over button {
             background-color: #4caf50;
@@ -243,7 +244,7 @@
             flex-direction: column;
             justify-content: center;
             align-items: center;
-            z-index: 1000;
+            z-index: 2000;
             padding: 20px;
             box-sizing: border-box;
         }
@@ -269,7 +270,7 @@
             color: white;
             padding: 20px;
             border-radius: 10px;
-            z-index: 999;
+            z-index: 1999;
             text-align: center;
             font-size: 1.5rem;
         }
@@ -291,7 +292,7 @@
             display: flex;
             flex-direction: column;
             align-items: center;
-            z-index: 1000;
+            z-index: 1500;
             gap: 5px;
             pointer-events: none;
         }
@@ -304,6 +305,16 @@
             max-width: 100%;
             animation: fadeOut 3s forwards;
         }
+        @keyframes linkPulse {
+            0% { box-shadow: 0 0 5px 2px rgba(255, 255, 255, 0.7); }
+            50% { box-shadow: 0 0 20px 10px rgba(255, 255, 255, 0.9); }
+            100% { box-shadow: 0 0 5px 2px rgba(255, 255, 255, 0.7); }
+        }
+
+        .link-highlight {
+            animation: linkPulse 1s infinite;
+            z-index: 2000 !important;
+        }
         @keyframes fadeOut {
             0% { opacity: 1; }
             70% { opacity: 1; }
@@ -312,7 +323,7 @@
         .falling-piece {
             position: absolute;
             transition: top 0.5s ease;
-            z-index: 1800;
+            z-index: 800;
         }
         /* ログパネル用スタイル */
         .log-panel {
@@ -372,6 +383,113 @@
             color: #ff5722;
             font-weight: bold;
         }
+        /* チュートリアル用スタイル */
+        .tutorial-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0, 0, 0, 0.5);
+            z-index: 1000;
+            pointer-events: none;
+        }
+        .tutorial-box {
+            position: fixed;
+            bottom: 20px;
+            left: 50%;
+            transform: translateX(-50%);
+            background-color: #fff;
+            padding: 15px;
+            border-radius: 8px;
+            max-width: 90%;
+            width: 400px;
+            box-shadow: 0 0 10px rgba(0, 0, 0, 0.3);
+            z-index: 2000;
+            pointer-events: auto;
+        }
+        .tutorial-box h3 {
+            margin-top: 0;
+        }
+        .tutorial-box button {
+            padding: 8px 15px;
+            margin-top: 10px;
+            background-color: #2196F3;
+            color: white;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+        }
+        .tutorial-box button:disabled {
+            background-color: #ccc;
+            cursor: not-allowed;
+        }
+        .tutorial-box button#nextStepBtn.highlight {
+            animation: buttonPulse 1s infinite;
+            background-color: #4CAF50;
+        }
+        .highlight-cell {
+            box-shadow: 0 0 10px 3px #4CAF50 !important;
+            animation: pulse 1.5s infinite !important;
+            position: relative !important;
+            z-index: 1200 !important;
+        }
+        .show-tutorial-btn {
+            position: fixed;
+            bottom: 10px;
+            right: 10px;
+            background-color: #4CAF50;
+            color: white;
+            border: none;
+            padding: 5px 10px;
+            border-radius: 4px;
+            cursor: pointer;
+            z-index: 2100;
+        }
+        .shop-item {
+    position: relative;
+    cursor: pointer;
+    transition: transform 0.2s;
+}
+
+.shop-item:hover {
+    transform: translateY(-5px);
+}
+
+.shop-price {
+    position: absolute;
+    bottom: 5px;
+    right: 5px;
+    background-color: #f1c40f;
+    color: #000;
+    padding: 2px 6px;
+    border-radius: 10px;
+    font-size: 0.8rem;
+    font-weight: bold;
+}
+
+.shop-skip-button {
+    background-color: #95a5a6;
+    color: white;
+    border: none;
+    padding: 8px 15px;
+    border-radius: 5px;
+    cursor: pointer;
+}
+
+.shop-skip-button:hover {
+    background-color: #7f8c8d;
+}
+        @keyframes pulse {
+            0% { box-shadow: 0 0 10px 3px #4CAF50; }
+            50% { box-shadow: 0 0 15px 5px #4CAF50; }
+            100% { box-shadow: 0 0 10px 3px #4CAF50; }
+        }
+        @keyframes buttonPulse {
+            0% { transform: scale(1); }
+            50% { transform: scale(1.05); }
+            100% { transform: scale(1); }
+        }
     </style>
 </head>
 <body>
@@ -383,6 +501,8 @@
     <div class="game-info">
         <div>ステージ: <span id="stageNumber">1</span></div>
         <div>ターン: <span id="turnCounter">1</span></div>
+        <!-- ここに追加 -->
+        <div>ゴールド: <span id="goldDisplay">0</span>G</div>
     </div>
     
     <div class="game-container">
@@ -475,7 +595,14 @@
             cardSelectionInProgress: false,
             isBossStage: false,
             animationInProgress: false,
-            log: [] // ゲームログの保存
+            log: [], // ゲームログの保存
+            tutorialActive: false, // チュートリアルがアクティブかどうか
+            tutorialPreventStageClear: false, // チュートリアル中にステージクリアを防ぐフラグ
+        
+            // ここに新しい変数を追加
+            gold: 0, // ゴールド（初期値0）
+            shopAppearChance: 0.3, // ショップ出現確率
+            debugMode: false // デバッグモード
         };
 
         // カードの基本テンプレート
@@ -514,22 +641,22 @@
                 }
             },
             {
-                ...createCard('foundation', '縁の下の力持ち', '最も下段に自分の箱がある数分、攻撃力がプラスされる'),
-                effect: (damage) => damage + countBottomRowPieces(),
+                ...createCard('foundation', '縁の下の力持ち', '最も下段に自分の箱がある数分、攻撃力が+3される'),
+                effect: (damage) => damage + countBottomRowPieces()*3,
                 onActivate: () => {
                     const bottomPieces = countBottomRowPieces();
                     if (bottomPieces > 0) {
-                        gameState.playerAttack += bottomPieces;
+                        gameState.playerAttack += bottomPieces*3;
                         updateUI();
-                        addToLog('効果', `縁の下の力持ち: 攻撃力+${bottomPieces} (底段の箱: ${bottomPieces}個)`);
+                        addToLog('効果', `縁の下の力持ち: 攻撃力+${bottomPieces*3} (底段の箱: ${bottomPieces}個)`);
                     }
                 },
                 onDeactivate: () => {
                     const bottomPieces = countBottomRowPieces();
                     if (bottomPieces > 0) {
-                        gameState.playerAttack -= bottomPieces;
+                        gameState.playerAttack -= bottomPieces*3;
                         updateUI();
-                        addToLog('効果', `縁の下の力持ち: 攻撃力-${bottomPieces}`);
+                        addToLog('効果', `縁の下の力持ち: 攻撃力-${bottomPieces*3}`);
                     }
                 },
                 onBoardChange: () => {
@@ -538,8 +665,8 @@
                         const currentBottomPieces = countBottomRowPieces();
                         const card = gameState.activeCards.find(c => c.id === 'foundation');
                         if (card.lastBottomPieces !== undefined) {
-                            gameState.playerAttack -= card.lastBottomPieces;
-                            gameState.playerAttack += currentBottomPieces;
+                            gameState.playerAttack -= card.lastBottomPieces*3;
+                            gameState.playerAttack += currentBottomPieces*3;
                             addToLog('効果', `縁の下の力持ち: 底段の箱が${card.lastBottomPieces}個→${currentBottomPieces}個に変化 (攻撃力${gameState.playerAttack})`);
                             card.lastBottomPieces = currentBottomPieces;
                         } else {
@@ -549,6 +676,69 @@
                     }
                 }
             },
+            // 新しいカード：天空の支配者
+            {
+                ...createCard('sky-ruler', '天空の支配者', '最も上段に自分の箱がある数分、攻撃力+15される'),
+                effect: (damage) => damage + countTopRowPieces() * 15,
+                onActivate: () => {
+                    const topPieces = countTopRowPieces();
+                    if (topPieces > 0) {
+                        gameState.playerAttack += topPieces * 15;
+                        updateUI();
+                        addToLog('効果', `天空の支配者: 攻撃力+${topPieces * 15} (上段の箱: ${topPieces}個)`);
+                    }
+                },
+                onDeactivate: () => {
+                    const topPieces = countTopRowPieces();
+                if (topPieces > 0) {
+                    gameState.playerAttack -= topPieces * 15;
+                    updateUI();
+                    addToLog('効果', `天空の支配者: 攻撃力-${topPieces * 15}`);
+                }
+                },
+                onBoardChange: () => {
+                    if (gameState.activeCards.some(card => card.id === 'sky-ruler')) {
+                        // 盤面変更時に攻撃力を再計算
+                        const currentTopPieces = countTopRowPieces();
+                        const card = gameState.activeCards.find(c => c.id === 'sky-ruler');
+                        if (card.lastTopPieces !== undefined) {
+                            gameState.playerAttack -= card.lastTopPieces * 15;
+                            gameState.playerAttack += currentTopPieces * 15;
+                            addToLog('効果', `天空の支配者: 上段の箱が${card.lastTopPieces}個→${currentTopPieces}個に変化 (攻撃力${gameState.playerAttack})`);
+                            card.lastTopPieces = currentTopPieces;
+                        } else {
+                            card.lastTopPieces = currentTopPieces;
+                        }
+                        updateUI();
+                    }
+                }
+            },
+            // 新しいカード：斜に構える
+            {
+                ...createCard('diagonal-stance', '斜に構える', '斜めのリンクでしか攻撃できないが、攻撃力2倍'),
+                effect: (damage, connections, direction) => {
+        // 方向が斜め（2: 右下斜め、3: 左下斜め）の場合のみ攻撃可能で、その場合は2倍ダメージ
+                    if (direction === 2 || direction === 3) {
+                        addToLog('効果', `斜に構える: 斜めリンクなので攻撃力2倍 (${damage} → ${damage * 2})`);
+                        return damage * 2;
+                    } else {
+                    // 斜め以外は攻撃不可
+                        addToLog('効果', `斜に構える: 斜めリンクでないため攻撃無効 (${damage} → 0)`);
+                        return 0;
+                    }
+                },
+                onActivate: () => {
+                    gameState.playerAttack += 5;
+                    updateUI();
+                    addToLog('効果', '斜に構える: 攻撃力+5');
+                },
+                onDeactivate: () => {
+                    gameState.playerAttack -= 5;
+                    updateUI();
+                    addToLog('効果', '斜に構える: 攻撃力-5');
+                }
+            },
+
             {
                 ...createCard('heal-potion', '回復ポーション', '使用したら消える。HPを1~10のうちランダムな値回復する', true),
                 onUse: () => {
@@ -609,7 +799,7 @@
                     updateUI();
                     
                     // 敵のHPが0になった場合
-                    if (gameState.enemyHP <= 0) {
+                    if (gameState.enemyHP <= 0 && !gameState.tutorialPreventStageClear) {
                         setTimeout(() => showStageClearNotification(), 500);
                     }
                     
@@ -709,7 +899,7 @@
                             showMessage(`毒の効果！敵に${poisonDamage}ダメージ！`);
                             addToLog('ダメージ', `毒: 敵に${poisonDamage}ダメージ (攻撃力${gameState.playerAttack}の20%)`);
                             updateUI();
-                            if (gameState.enemyHP <= 0) {
+                            if (gameState.enemyHP <= 0 && !gameState.tutorialPreventStageClear) {
                                 setTimeout(() => showStageClearNotification(), 500);
                             }
                         }
@@ -908,11 +1098,40 @@
             }
         ];
 
+        // チュートリアル用のイベントリスナー管理
+        let tutorialListeners = [];
+
+        // イベントリスナーを管理しやすく追加する関数
+        function addTutorialListener(element, type, listener) {
+            element.addEventListener(type, listener);
+            tutorialListeners.push({ element, type, listener });
+        }
+
+        // すべてのチュートリアルリスナーを削除
+        function clearTutorialListeners() {
+            tutorialListeners.forEach(({ element, type, listener }) => {
+                element.removeEventListener(type, listener);
+            });
+            tutorialListeners = [];
+        }
+
         // ダメージ計算
         function calculateDamage(baseDamage, attackerAttack, defenderDefense) {
             // 攻撃力は基本ダメージに乗算、防御力は減算
             let calculatedDamage = Math.floor(baseDamage * (1 + attackerAttack / 20)) - defenderDefense;
             return Math.max(1, calculatedDamage); // 最低1ダメージは保証
+        }
+
+        // 最上段のプレイヤー駒をカウント（天空の支配者カード用）
+        function countTopRowPieces() {
+            let count = 0;
+            const topRow = 0;  // 最上段は0行目
+            for (let col = 0; col < gameState.boardWidth; col++) {
+                if (gameState.board[topRow][col] === 'player') {
+                    count++;
+                }
+            }
+            return count;
         }
 
         // ログにエントリを追加
@@ -932,7 +1151,7 @@
             const logPanel = document.getElementById('logPanel');
             if (!logPanel) return;
 
-            // 最新の10項目だけ表示
+            // 最新の20項目だけ表示
             const recentLogs = gameState.log.slice(-20);
             
             // ログをクリア
@@ -1074,7 +1293,10 @@
             logPanel: document.getElementById('logPanel'),
             toggleLogButton: document.getElementById('toggleLogButton'),
             messagesContainer: document.getElementById('messagesContainer'),
-            stageIndicator: document.getElementById('stageIndicator')
+            stageIndicator: document.getElementById('stageIndicator'),
+        
+            goldDisplay: document.getElementById('goldDisplay')
+
         };
 
         // ログ表示切り替え
@@ -1087,6 +1309,185 @@
                 elements.toggleLogButton.textContent = 'ログを表示';
             }
         });
+
+        // HTMLにデバッグモードボタンを追加するコード
+// header部分の下あたりに追加
+function addDebugButton() {
+    const debugButton = document.createElement('button');
+    debugButton.id = 'debugButton';
+    debugButton.textContent = 'デバッグモード: OFF';
+    debugButton.style.position = 'fixed';
+    debugButton.style.top = '10px';
+    debugButton.style.right = '10px';
+    debugButton.style.zIndex = '2500';
+    debugButton.style.backgroundColor = '#ff5722';
+    debugButton.style.color = 'white';
+    debugButton.style.border = 'none';
+    debugButton.style.padding = '5px 10px';
+    debugButton.style.borderRadius = '4px';
+    debugButton.style.cursor = 'pointer';
+    
+    debugButton.addEventListener('click', toggleDebugMode);
+    document.body.appendChild(debugButton);
+    
+    // デバッグパネルの追加
+    const debugPanel = document.createElement('div');
+    debugPanel.id = 'debugPanel';
+    debugPanel.style.position = 'fixed';
+    debugPanel.style.top = '50px';
+    debugPanel.style.right = '10px';
+    debugPanel.style.width = '200px';
+    debugPanel.style.backgroundColor = '#333';
+    debugPanel.style.color = 'white';
+    debugPanel.style.padding = '10px';
+    debugPanel.style.borderRadius = '4px';
+    debugPanel.style.zIndex = '2400';
+    debugPanel.style.display = 'none';
+    
+    debugPanel.innerHTML = `
+        <h3 style="margin-top: 0;">デバッグツール</h3>
+        <button id="getAllCardsBtn" style="width: 100%; margin-bottom: 5px;">全カード獲得</button>
+        <button id="selectCardBtn" style="width: 100%; margin-bottom: 5px;">カード選択</button>
+        <button id="addGoldBtn" style="width: 100%; margin-bottom: 5px;">ゴールド+100</button>
+        <button id="healFullBtn" style="width: 100%; margin-bottom: 5px;">HP全回復</button>
+        <button id="killEnemyBtn" style="width: 100%; margin-bottom: 5px;">敵を倒す</button>
+        <button id="nextStageBtn" style="width: 100%; margin-bottom: 5px;">次ステージへ</button>
+    `;
+    
+    document.body.appendChild(debugPanel);
+    
+    // デバッグパネルのボタンにイベントリスナーを設定
+    document.getElementById('getAllCardsBtn').addEventListener('click', getAllCards);
+    document.getElementById('selectCardBtn').addEventListener('click', showCardSelectionDebug);
+    document.getElementById('addGoldBtn').addEventListener('click', () => {
+        gameState.gold += 100;
+        updateUI();
+        showMessage('ゴールド+100');
+    });
+    document.getElementById('healFullBtn').addEventListener('click', () => {
+        gameState.playerHP = 100;
+        updateUI();
+        showMessage('HPを全回復しました');
+    });
+    document.getElementById('killEnemyBtn').addEventListener('click', () => {
+        gameState.enemyHP = 0;
+        updateUI();
+        showMessage('敵を倒しました');
+        if (!gameState.tutorialPreventStageClear) {
+            setTimeout(() => showStageClearNotification(), 500);
+        }
+    });
+    document.getElementById('nextStageBtn').addEventListener('click', () => {
+        handleStageComplete([]);
+        showMessage('次のステージへ進みました');
+    });
+}
+
+// デバッグモード切り替え関数
+function toggleDebugMode() {
+    gameState.debugMode = !gameState.debugMode;
+    const debugButton = document.getElementById('debugButton');
+    const debugPanel = document.getElementById('debugPanel');
+    
+    if (gameState.debugMode) {
+        debugButton.textContent = 'デバッグモード: ON';
+        debugButton.style.backgroundColor = '#4CAF50';
+        debugPanel.style.display = 'block';
+    } else {
+        debugButton.textContent = 'デバッグモード: OFF';
+        debugButton.style.backgroundColor = '#ff5722';
+        debugPanel.style.display = 'none';
+    }
+    
+    addToLog('システム', `デバッグモード: ${gameState.debugMode ? 'ON' : 'OFF'}`);
+}
+
+// 全カード獲得関数
+function getAllCards() {
+    cardDefinitions.forEach(card => {
+        if (!gameState.playerCards.some(playerCard => playerCard.id === card.id)) {
+            gameState.playerCards.push({...card});
+        }
+    });
+    
+    renderCards();
+    showMessage('全カードを獲得しました');
+    addToLog('デバッグ', '全カードを獲得');
+}
+
+// カード選択画面を表示（デバッグ用）
+function showCardSelectionDebug() {
+    const availableCards = cardDefinitions.filter(
+        card => !gameState.playerCards.some(playerCard => playerCard.id === card.id)
+    );
+    
+    if (availableCards.length === 0) {
+        showMessage('獲得可能なカードがありません');
+        return;
+    }
+    
+    gameState.cardSelectionInProgress = true;
+    
+    // モーダルを作成
+    const modal = document.createElement('div');
+    modal.className = 'card-selection-modal';
+    
+    const title = document.createElement('div');
+    title.className = 'card-selection-title';
+    title.textContent = 'デバッグ: カードを選択';
+    modal.appendChild(title);
+    
+    const cardContainer = document.createElement('div');
+    cardContainer.className = 'card-selection-options';
+    cardContainer.style.maxHeight = '70vh';
+    cardContainer.style.overflowY = 'auto';
+    
+    // 各カードの作成
+    availableCards.forEach(card => {
+        const cardElement = document.createElement('div');
+        cardElement.className = 'card';
+        if (card.consumable) {
+            cardElement.classList.add('consumable-card');
+        }
+        
+        cardElement.innerHTML = `
+            <div class="card-title">${card.name}</div>
+            <div class="card-desc">${card.description}</div>
+        `;
+        
+        cardElement.addEventListener('click', () => {
+            gameState.playerCards.push({...card});
+            modal.remove();
+            gameState.cardSelectionInProgress = false;
+            renderCards();
+            showMessage(`カード「${card.name}」を獲得しました`);
+            addToLog('デバッグ', `カード「${card.name}」を獲得`);
+        });
+        
+        cardContainer.appendChild(cardElement);
+    });
+    
+    modal.appendChild(cardContainer);
+    
+    // キャンセルボタン
+    const cancelButton = document.createElement('button');
+    cancelButton.textContent = 'キャンセル';
+    cancelButton.style.marginTop = '20px';
+    cancelButton.style.padding = '10px 20px';
+    cancelButton.style.backgroundColor = '#95a5a6';
+    cancelButton.style.color = 'white';
+    cancelButton.style.border = 'none';
+    cancelButton.style.borderRadius = '5px';
+    cancelButton.style.cursor = 'pointer';
+    
+    cancelButton.addEventListener('click', () => {
+        modal.remove();
+        gameState.cardSelectionInProgress = false;
+    });
+    
+    modal.appendChild(cancelButton);
+    document.body.appendChild(modal);
+}
 
         // ゲーム初期化
         function initGame() {
@@ -1134,7 +1535,11 @@
                 cardSelectionInProgress: false,
                 isBossStage: false,
                 animationInProgress: false,
-                log: []
+                tutorialActive: false,
+                tutorialPreventStageClear: false,
+                log: [],
+
+                gold: 0
             });
 
             // 初期カードを追加
@@ -1164,7 +1569,12 @@
 
             updateUI();
             renderCards();
+
+            addDebugButton();
         }
+
+        // オリジナルのステージクリア通知関数を保存
+        const originalShowStageClearNotification = showStageClearNotification;
 
         // セルクリックのハンドラ
         function handleCellClick(col) {
@@ -1193,8 +1603,8 @@
                 // アニメーション完了後の処理
                 
                 // リンクチェックとダメージ計算
-                const connections = checkConnections(row, col, 'player');
-                const didDealDamage = applyDamage(connections, 'player');
+                const connectionResult = checkConnections(row, col, 'player');
+                const didDealDamage = applyDamage(connectionResult, 'player');
                 
                 // 「上達への道」カードの効果を適用
                 if (didDealDamage) {
@@ -1229,7 +1639,7 @@
                 });
 
                 // 勝利チェック
-                if (gameState.enemyHP <= 0) {
+                if (gameState.enemyHP <= 0 && !gameState.tutorialPreventStageClear) {
                     showStageClearNotification();
                     gameState.animationInProgress = false;
                     return;
@@ -1256,6 +1666,27 @@
                 
                 setTimeout(enemyTurn, 500);
             });
+        }
+
+        // チュートリアル用のセルクリックハンドラ
+        function tutorialCellClick(col) {
+            const row = findAvailableRow(col);
+            if (row === -1) return false; // 列がいっぱいの場合
+
+            // ゲーム状態を更新（アニメーションなしで即時反映）
+            gameState.board[row][col] = 'player';
+            renderBoard();
+
+            // リンクチェック
+            const connections = checkConnections(row, col, 'player');
+            
+            // チュートリアルステップに応じた結果を返す
+            return {
+                row,
+                col,
+                connections,
+                success: true
+            };
         }
 
         // 箱の落下アニメーション
@@ -1321,8 +1752,8 @@
             // ステータス効果を処理
             processStatusEffects();
 
-            // 敵の攻撃が霧で失敗するかチェック
-            const fogEffect = gameState.statusEffects.enemy.find(effect => effect.missChance);
+// 敵の攻撃が霧で失敗するかチェック
+const fogEffect = gameState.statusEffects.enemy.find(effect => effect.missChance);
             if (fogEffect && Math.random() < fogEffect.missChance) {
                 showMessage('霧の効果！敵の攻撃が失敗した！');
                 addToLog('効果', '霧の効果: 敵の攻撃が失敗');
@@ -1408,9 +1839,13 @@
             ];
 
             let maxConnections = 0;
+            let maxDirection = -1;
+            let linkedPositions = [];
 
-            for (const [dx, dy] of directions) {
+            for (let i = 0; i < directions.length; i++) {
+                const [dx,dy] = directions[i];
                 let count = 1; // 自分自身を含む
+                let positions = [[row, col]];
 
                 // 両方向にカウント
                 for (const [dirX, dirY] of [[dx, dy], [-dx, -dy]]) {
@@ -1423,19 +1858,71 @@
                         gameState.board[r][c] === player
                     ) {
                         count++;
+                        positions.push([r, c]);
                         r += dirX;
                         c += dirY;
                     }
                 }
 
-                maxConnections = Math.max(maxConnections, count);
+                if(count > maxConnections){
+                    maxConnections = count;
+                    maxDirection = i;
+                    linkedPositions = positions;
+                }
+
+                //maxConnections = Math.max(maxConnections, count);
             }
 
-            return maxConnections;
+            return {connections: maxConnections, direction: maxDirection,positions: linkedPositions};
         }
 
+        // 光る演出を実装する関数
+function highlightLinkedBoxes(positions, connections) {
+    // リンク数に応じて異なる色を設定
+    let highlightColor;
+    switch(connections) {
+        case 3:
+            highlightColor = '#ffeb3b'; // 黄色
+            break;
+        case 4:
+            highlightColor = '#ff9800'; // オレンジ
+            break;
+        case 5:
+            highlightColor = '#f44336'; // 赤
+            break;
+        default:
+            highlightColor = '#e91e63'; // ピンク(6以上)
+    }
+    
+    // 各リンク位置に対して光る演出を追加
+    positions.forEach(([row, col]) => {
+        const cellIndex = row * gameState.boardWidth + col;
+        const cell = document.querySelectorAll('.cell')[cellIndex];
+        if (cell) {
+            const piece = cell.querySelector('.player-piece, .enemy-piece');
+            if (piece) {
+                // オリジナルの外観を保存
+                const originalBoxShadow = piece.style.boxShadow;
+                const originalTransition = piece.style.transition;
+                
+                // 光るエフェクトを適用
+                piece.style.boxShadow = `0 0 15px 5px ${highlightColor}`;
+                piece.style.transition = 'box-shadow 0.1s ease';
+                
+                // アニメーション終了後に元に戻す
+                setTimeout(() => {
+                    piece.style.boxShadow = originalBoxShadow;
+                    piece.style.transition = originalTransition;
+                }, 1500);
+            }
+        }
+    });
+}
+
         // ダメージを適用
-        function applyDamage(connections, player) {
+        function applyDamage(connectionResult, player) {
+            const {connections, direction, positions} = connectionResult; //斜に構える用？
+
             if (connections < 3) {
                 // リンクが不十分な場合は連続カウントをリセット
                 if (player === 'player') {
@@ -1443,6 +1930,8 @@
                 }
                 return false; // ダメージなし
             }
+
+                highlightLinkedBoxes(positions,connections);
 
             // 基本ダメージ計算
             let baseDamage = connections === 3 ? 10 : 50;
@@ -1452,6 +1941,17 @@
                 // カードの効果を適用
                 addToLog('ダメージ', `プレイヤーの攻撃: ${connections}リンク、基本ダメージ=${baseDamage}`);
                 
+                // 斜に構えるカードの効果は最初に判定
+                const diagonalStance = gameState.activeCards.find(card => card.id === 'diagonal-stance');
+                if (diagonalStance?.effect) {
+            // 方向が斜めなら通常処理、斜めでなければダメージを0にして早期リターン
+                    damage = diagonalStance.effect(damage, connections, direction);
+                    if (damage === 0) {
+                        showMessage('斜に構える: 斜めリンクでないため攻撃無効！');
+                        return false;
+                    }
+                }
+
                 // 長蛇の列カードの効果を適用（5連続リンク）
                 const snakeLine = gameState.activeCards.find(card => card.id === 'snake-line');
                 if (snakeLine?.effect) {
@@ -1474,7 +1974,7 @@
 
                 // その他のカード効果を適用
                 gameState.activeCards.forEach(card => {
-                    if (card.effect && !['snake-line', 'link-boost'].includes(card.id)) {
+                    if (card.effect && !['snake-line', 'link-boost', 'diagonal-stance'].includes(card.id)) {
                         const oldDamage = damage;
                         damage = card.effect(damage, connections);
                         if (oldDamage !== damage) {
@@ -1554,6 +2054,9 @@
 
         // ステージクリア通知を表示
         function showStageClearNotification() {
+            // チュートリアル中は実行しない
+            if (gameState.tutorialPreventStageClear) return;
+            
             // カード選択中フラグを立てる
             gameState.cardSelectionInProgress = true;
             
@@ -1566,12 +2069,28 @@
             // ログに記録
             addToLog('システム', `ステージ${gameState.stage}クリア！`);
             
+            // ゴールドを獲得
+            const goldGained = gameState.stage * 5 + (gameState.isBossStage ? 20 : 0);
+            gameState.gold += goldGained;
+            addToLog('システム', `${goldGained}ゴールド獲得 (現在: ${gameState.gold}G)`);
+
             // 少し待ってからカード選択画面を表示
             setTimeout(() => {
                 notification.remove();
-                showCardSelectionScreen();
+
+                if(gameState.isBossStage){
+                    showCardSelectionScreen();
+                }else{
+                    // ショップが出現するかチェック
+                    if (Math.random() < gameState.shopAppearChance) {
+                        showShopScreen();
+                    } else {
+                        handleStageComplete([]);
+                    }
+                }
             }, 1500);
         }
+
 
         // カード選択画面を表示
         function showCardSelectionScreen() {
@@ -1631,6 +2150,133 @@
             document.body.appendChild(modal);
         }
 
+// カード選択画面の表示関数の近くに追加するとよいでしょう
+function showShopScreen() {
+    gameState.cardSelectionInProgress = true;
+    
+    // ショップのアイテム定義
+    const shopItems = [
+        {
+            name: '小回復ポーション',
+            description: 'HP+20回復する',
+            price: 10,
+            effect: () => {
+                gameState.playerHP = Math.min(100, gameState.playerHP + 20);
+                showMessage('<span class="healing-effect">20ポイント回復しました！</span>');
+                addToLog('回復', '小回復ポーション: HP+20');
+                updateUI();
+            }
+        },
+        {
+            name: '攻撃の原石',
+            description: '攻撃力+1（永続）',
+            price: 15,
+            effect: () => {
+                // 永続的な攻撃力アップ
+                gameState.playerAttack += 1;
+                updateUI();
+                showMessage('攻撃力が永続的に増加しました！');
+                addToLog('効果', '攻撃の原石: 攻撃力+1（永続）');
+            }
+        },
+        {
+            name: '防御の粉末',
+            description: '防御力+1（永続）',
+            price: 15,
+            effect: () => {
+                // 永続的な防御力アップ
+                gameState.playerDefense += 1;
+                updateUI();
+                showMessage('防御力が永続的に増加しました！');
+                addToLog('効果', '防御の粉末: 防御力+1（永続）');
+            }
+        }
+    ];
+    
+    // ショップUIの作成
+    const modal = document.createElement('div');
+    modal.className = 'card-selection-modal';
+    
+    const title = document.createElement('div');
+    title.className = 'card-selection-title';
+    title.id = 'shopTitle';
+    title.textContent = 'ショップ (所持金: ' + gameState.gold + 'G)';
+    modal.appendChild(title);
+    
+    const itemsContainer = document.createElement('div');
+    itemsContainer.className = 'card-selection-options';
+    
+    // 各商品の表示
+    shopItems.forEach(item => {
+        const itemElement = document.createElement('div');
+        itemElement.className = 'card shop-item';
+        
+        itemElement.innerHTML = `
+            <div class="card-title">${item.name}</div>
+            <div class="card-desc">${item.description}</div>
+            <div class="shop-price">${item.price}G</div>
+        `;
+        
+        // 購入処理
+        itemElement.addEventListener('click', () => {
+            if (gameState.gold >= item.price) {
+                gameState.gold -= item.price;
+                item.effect();
+                showMessage(`「${item.name}」を購入しました！`);
+                addToLog('ショップ', `「${item.name}」を${item.price}Gで購入`);
+                updateUI();
+
+                document.getElementById('shopTitle').textContent = 'ショップ (所持金: ' + gameState.gold + 'G)';
+                updateShopItems();
+            } else {
+                showMessage('ゴールドが足りません！');
+            }
+        });
+        
+        if (gameState.gold < item.price) {
+            itemElement.style.opacity = '0.5';
+        }
+        
+        itemsContainer.appendChild(itemElement);
+    });
+    
+    modal.appendChild(itemsContainer);
+    
+    // スキップボタン
+    const nextStageButton = document.createElement('button');
+    nextStageButton.textContent = '次のステージへ';
+    nextStageButton.className = 'shop-skip-button';
+    nextStageButton.style.marginTop = '20px';
+    nextStageButton.style.backgroundColor = '#4CAF50'; // 緑色に変更
+    nextStageButton.addEventListener('click', () => {
+        modal.remove();
+        gameState.cardSelectionInProgress = false;
+        showMessage('次のステージへ進みます');
+        addToLog('ショップ', 'ショップを出て次のステージへ');
+        // 次のステージへ進む処理を追加
+        handleStageComplete([]);
+    });
+    
+    modal.appendChild(nextStageButton);
+    document.body.appendChild(modal);
+
+    // アイテムの購入可否状態を更新する関数
+    function updateShopItems() {
+        const shopItems = document.querySelectorAll('.shop-item');
+        shopItems.forEach(item => {
+            const priceElement = item.querySelector('.shop-price');
+            if (priceElement) {
+                const price = parseInt(priceElement.textContent);
+                if (gameState.gold < price) {
+                    item.style.opacity = '0.5';
+                } else {
+                    item.style.opacity = '1';
+                }
+            }
+        });
+    }
+}
+
         // ステージクリア時の処理
         function handleStageComplete(selectedCards = []) {
             gameState.cardSelectionInProgress = false;
@@ -1672,8 +2318,29 @@
             // ステージ固有のカードをリセット（最強の盾の効果など）
             gameState.activeCards = gameState.activeCards.filter(card => card.id !== 'ultimate-shield-effect');
             
+            /*
+            // 攻撃力/防御力ボーナスを持つステータス効果を処理
+            gameState.statusEffects.player.forEach(effect => {
+                if (effect.attackBonus) {
+                    gameState.playerAttack -= effect.attackBonus;
+                }
+                if (effect.defenseBonus) {
+                    gameState.playerDefense -= effect.defenseBonus;
+                }
+            });
+            */
+
             // ステージごとの効果をリセット
-            gameState.statusEffects.player = gameState.statusEffects.player.filter(effect => effect.duration === -1);
+            gameState.statusEffects.player = gameState.statusEffects.player.filter(effect => {
+        // もし攻撃/防御ボーナスがあり、かつdurationが-1（ステージ限定）なら
+                if ((effect.attackBonus || effect.defenseBonus) && effect.duration === -1) {
+            // ボーナスを削除
+                if (effect.attackBonus) gameState.playerAttack -= effect.attackBonus;
+                if (effect.defenseBonus) gameState.playerDefense -= effect.defenseBonus;
+                return false; // このエフェクトを削除
+            }
+            return true; // それ以外は保持
+        });
             gameState.statusEffects.enemy = [];
 
             // ボードをリセットして次のステージへ
@@ -1845,6 +2512,11 @@
             elements.enemyDefense.textContent = gameState.enemyDefense;
             elements.consecutiveHits.textContent = gameState.consecutiveDamageCount;
             elements.criticalChance.textContent = gameState.criticalChance;
+        
+                // ゴールド表示の更新
+            if (elements.goldDisplay) {
+                elements.goldDisplay.textContent = gameState.gold;
+            }
         }
 
         // メッセージ表示
@@ -1872,531 +2544,574 @@
         });
 
         // チュートリアル機能
-function showTutorial() {
-    // チュートリアル用の特別なゲーム状態を設定
-    resetGameStateForTutorial();
+        function showTutorial() {
+            // チュートリアル用の特別なゲーム状態を設定
+            resetGameStateForTutorial();
 
-    const tutorialSteps = [
-        {
-            title: 'ようこそ「箱積みローグライク」へ！',
-            content: 'このゲームでは、箱を積みながら敵と戦います。簡単なチュートリアルで基本ルールを説明します。',
-            action: null
-        },
-        {
-            title: '箱の配置方法',
-            content: '画面の列をタップすると、その位置に箱が落ちてきます。試しに画面のどこかをタップしてみましょう！',
-            action: 'placeBox',
-            highlight: '.cell'
-        },
-        {
-            title: '攻撃の仕組み',
-            content: '3つ以上の箱を縦・横・斜めに並べると「リンク」が発生し、敵にダメージを与えられます。3つ並ぶように箱を置いてみましょう！',
-            action: 'createLink',
-            highlight: null // ハイライトは動的に設定
-        },
-        {
-            title: 'ステージクリア',
-            content: '敵のHPをゼロにするとステージクリアです。リンクを作って敵を倒してみましょう！',
-            action: 'defeatEnemy',
-            highlight: '#enemyHP'
-        },
-        {
-            title: '特殊カード',
-            content: 'カードを使うと様々な効果が発動します。チュートリアル特別カード「初心者のお守り」が追加されました。カードをタップして効果を確認しましょう！',
-            action: 'useCard',
-            highlight: '.card'
-        },
-        {
-            title: 'チュートリアル完了！',
-            content: 'お疲れ様でした！これで基本的な遊び方の説明は終わりです。ゲームを始めましょう！',
-            action: 'complete',
-            highlight: null
-        }
-    ];
-    
-    let currentStep = 0;
-    let tutorialActionCompleted = false;
-    
-    // チュートリアル用UI要素
-    const tutorialOverlay = document.createElement('div');
-    tutorialOverlay.className = 'tutorial-overlay';
-    tutorialOverlay.style.cssText = `
-        position: fixed;
-        top: 0;
-        left: 0;
-        width: 100%;
-        height: 100%;
-        background-color: rgba(0, 0, 0, 0.5);
-        z-index: 1000;
-        pointer-events: none;
-    `;
-    document.body.appendChild(tutorialOverlay);
-    
-    const tutorialBox = document.createElement('div');
-    tutorialBox.className = 'tutorial-box';
-    tutorialBox.style.cssText = `
-        position: fixed;
-        bottom: 20px;
-        left: 50%;
-        transform: translateX(-50%);
-        background-color: #fff;
-        padding: 15px;
-        border-radius: 8px;
-        max-width: 90%;
-        width: 400px;
-        box-shadow: 0 0 10px rgba(0, 0, 0, 0.3);
-        z-index: 2000;
-        pointer-events: auto;
-    `;
-    document.body.appendChild(tutorialBox);
-    
-    let tutorialBoxVisible = true;
-    // 次のステップを表示
-    function showStep() {
-        const step = tutorialSteps[currentStep];
-        tutorialActionCompleted = false;
-        
-        tutorialBox.innerHTML = `
-            <h3 style="margin-top: 0;">${step.title}</h3>
-            <p>${step.content}</p>
-            <div style="display: flex; justify-content: space-between;align-items: center;">
-                <button id="toggleTutorialBtn">
-                    ${tutorialBoxVisible ? '非表示にする' : '表示する'}
-                </button>
-                <button id="nextStepBtn" ${step.action && !tutorialActionCompleted ? 'disabled' : ''}>
-                    ${currentStep < tutorialSteps.length - 1 ? '次へ' : '完了'}
-                </button>
-            </div>
-        `;
-
-    
-        // ハイライト処理
-        if (step.highlight) {
-            highlightElement(step.highlight);
-        } else {
-            clearHighlight();
-        }
-        
-        // イベントリスナーの設定
-        document.getElementById('nextStepBtn').addEventListener('click', nextStep);
-        document.getElementById('toggleTutorialBtn').addEventListener('click', toggleTutorialBox);
-        
-        // ステップ固有のアクション
-        setupStepAction(step);
-
-        tutorialBox.style.display = tutorialBoxVisible ? 'block' : 'none' ;
-    }
-    
-    function toggleTutorialBox() {
-        tutorialBoxVisible = !tutorialBoxVisible;
-        tutorialBox.style.display = tutorialBoxVisible ? 'block' : 'none';
-
-        if(!tutorialBoxVisible) {
-
-            const showButton = document.createElement('button');
-            showButton.id = 'showTutorialBtn';
-            showButton.textContent = 'チュートリアルを表示';
-            showButton.style.cssText = `
-                position: fixed;
-                bottom: 10px;
-                right: 10px;
-                background-color: #4CAF50;
-                color: white;
-                border: none;
-                padding: 5px 10px;
-                border-radius: 4px;
-                cursor: pointer;
-                z-index: 2100;
-            `;
-            
-            showButton.addEventListener('click', toggleTutorialBox);
-            document.body.appendChild(showButton);
-        }else{
-            const showButton = document.getElementById('showTutorialBtn');
-            if(showButton) {
-                showButton.remove();
-            }
-        }
-    }
-
-    function showTutorialOnActionComplete() {
-        if(!tutorialBoxVisible) {
-            toggleTutorialBox();
-
-            const step = tutorialSteps[currentStep];
-            const nextBtn = document.getElementById('nextStepBtn');
-            if(nextBtn) {
-                nextBtn.style.animation = 'pulse 1s infinite';
-                nextBtn.style.backgroundColor = '#4CAF50';
-                nextBtn.style.color = 'white';
-
-                setTimeout(() => {
-                    nextBtn.style.animation = '';
-                }, 3000);
-            }
-        }
-    }
-
-
-    // 要素をハイライト
-    function highlightElement(selector) {
-        clearHighlight();
-        
-        if (selector === null) return;
-        
-        // アクションに応じた動的ハイライト
-        if (currentStep === 2) { // リンク作成ステップ
-            // リンクが作れる位置をハイライト
-            const possibleLinks = findPossibleLinks();
-            if (possibleLinks.length > 0) {
-                possibleLinks.forEach(pos => {
-                    const cell = document.querySelector(`.cell[data-row="${pos.row}"][data-col="${pos.col}"]`);
-                    if (cell) {
-                        cell.style.boxShadow = '0 0 10px 3px #4CAF50';
-                        cell.style.animation = 'pulse 1.5s infinite';
-                        cell.style.zIndex = '1200';
-                    }
-                });
-                return;
-            }
-        }
-        
-        // 通常のセレクタベースハイライト
-        const elements = document.querySelectorAll(selector);
-        elements.forEach(el => {
-            el.style.boxShadow = '0 0 10px 3px #4CAF50';
-            el.style.animation = 'pulse 1.5s infinite';
-            el.style.position = 'relative';
-            el.style.zIndex = '1200';
-        });
-    }
-    
-    // ハイライトをクリア
-    function clearHighlight() {
-        document.querySelectorAll('.cell, .card').forEach(el => {
-            el.style.boxShadow = '';
-            el.style.animation = '';
-            el.style.zIndex = '';
-        });
-    }
-    
-    // 前のステップへ
-    function prevStep() {
-        if (currentStep > 0) {
-            currentStep--;
-            showStep();
-        }
-    }
-    
-    // 次のステップへ
-    function nextStep() {
-        if (currentStep < tutorialSteps.length - 1) {
-            currentStep++;
-            showStep();
-        } else {
-            // チュートリアル完了
-            completeTutorial();
-        }
-    }
-    
-    // チュートリアル完了
-    function completeTutorial() {
-        tutorialOverlay.remove();
-        tutorialBox.remove();
-        document.body.removeEventListener('click', handleGlobalClick);
-        
-        localStorage.setItem('tutorialComplete', 'true');
-        
-        // 実際のゲーム開始
-        restartWithoutTutorial();
-    }
-    
-    // リンクできる可能性のある位置を探す
-    function findPossibleLinks() {
-        const possiblePositions = [];
-        
-        for (let col = 0; col < gameState.boardWidth; col++) {
-            const row = findAvailableRow(col);
-            if (row === -1) continue; // この列はいっぱい
-            
-            // この位置に置いたときにリンクができるか確認
-            const tempBoard = JSON.parse(JSON.stringify(gameState.board));
-            tempBoard[row][col] = 'player';
-            
-            const directions = [
-                [0, 1],   // 水平
-                [1, 0],   // 垂直
-                [1, 1],   // 右下斜め
-                [1, -1]   // 左下斜め
+            const tutorialSteps = [
+                {
+                    title: 'ようこそ「箱積みローグライク」へ！',
+                    content: 'このゲームでは、箱を積みながら敵と戦います。簡単なチュートリアルで基本ルールを説明します。',
+                    action: null
+                },
+                {
+                    title: '箱の配置方法',
+                    content: '画面の列をタップすると、その位置に箱が落ちてきます。試しに画面のどこかをタップしてみましょう！',
+                    action: 'placeBox',
+                    highlight: '.cell'
+                },
+                {
+                    title: '攻撃の仕組み',
+                    content: '3つ以上の箱を縦・横・斜めに並べると「リンク」が発生し、敵にダメージを与えられます。3つ並ぶように箱を置いてみましょう！',
+                    action: 'createLink',
+                    highlight: null // ハイライトは動的に設定
+                },
+                {
+                    title: 'ステージクリア',
+                    content: '敵のHPをゼロにするとステージクリアです。リンクを作って敵を倒してみましょう！',
+                    action: 'defeatEnemy',
+                    highlight: '#enemyHP'
+                },
+                {
+                    title: '特殊カード',
+                    content: 'カードを使うと様々な効果が発動します。チュートリアル特別カード「初心者のお守り」が追加されました。カードをタップして効果を確認しましょう！',
+                    action: 'useCard',
+                    highlight: '.card'
+                },
+                {
+                    title: 'チュートリアル完了！',
+                    content: 'お疲れ様でした！これで基本的な遊び方の説明は終わりです。ゲームを始めましょう！',
+                    action: 'complete',
+                    highlight: null
+                }
             ];
             
-            let wouldLink = false;
+            let currentStep = 0;
+            let tutorialBoxVisible = true;
             
-            for (const [dx, dy] of directions) {
-                let count = 1; // 自分自身を含む
+            // チュートリアル用UI要素
+            const tutorialOverlay = document.createElement('div');
+            tutorialOverlay.className = 'tutorial-overlay';
+            document.body.appendChild(tutorialOverlay);
+            
+            const tutorialBox = document.createElement('div');
+            tutorialBox.className = 'tutorial-box';
+            document.body.appendChild(tutorialBox);
+            
+            // チュートリアル用ボタンを追加する関数
+            function createShowTutorialButton() {
+                const showButton = document.createElement('button');
+                showButton.id = 'showTutorialBtn';
+                showButton.className = 'show-tutorial-btn';
+                showButton.textContent = 'チュートリアルを表示';
+                showButton.addEventListener('click', toggleTutorialBox);
+                document.body.appendChild(showButton);
+                return showButton;
+            }
+            
+            let showTutorialButton = null;
+            
+            // 次のステップを表示
+            function showStep() {
+                const step = tutorialSteps[currentStep];
                 
-                // 両方向にカウント
-                for (const [dirX, dirY] of [[dx, dy], [-dx, -dy]]) {
-                    let r = row + dirX;
-                    let c = col + dirY;
+                tutorialBox.innerHTML = `
+                    <h3>${step.title}</h3>
+                    <p>${step.content}</p>
+                    <div style="display: flex; justify-content: space-between;align-items: center;">
+                        <button id="toggleTutorialBtn">
+                            ${tutorialBoxVisible ? '非表示にする' : '表示する'}
+                        </button>
+                        <button id="nextStepBtn" ${step.action && !step.actionCompleted ? 'disabled' : ''}>
+                            ${currentStep < tutorialSteps.length - 1 ? '次へ' : '完了'}
+                        </button>
+                    </div>
+                `;
+            
+                // ハイライト処理
+                highlightElement(step.highlight);
+                
+                // イベントリスナーの設定
+                document.getElementById('nextStepBtn').addEventListener('click', nextStep);
+                document.getElementById('toggleTutorialBtn').addEventListener('click', toggleTutorialBox);
+                
+                // ステップ固有のアクション設定
+                setupStepAction(step);
+                
+                // 表示状態を更新
+                tutorialBox.style.display = tutorialBoxVisible ? 'block' : 'none';
+                if (!tutorialBoxVisible && !showTutorialButton) {
+                    showTutorialButton = createShowTutorialButton();
+                }
+
+                if(currentStep === tutorialSteps.length - 1){
+                    setTimeout(() => {
+                        const nextBtn = document.getElementById('nextStepBtn');
+                        if(nextBtn){
+                            nextBtn.disabled = false;
+                            nextBtn.classList.add('highlight');
+                            setTimeout(() => {
+                                nextBtn.classList.remove('highlight');
+                            }, 3000);
+                        }
+                    }, 3000);
+                }
+            }
+            
+            // チュートリアルボックスの表示/非表示を切り替え
+            function toggleTutorialBox() {
+                tutorialBoxVisible = !tutorialBoxVisible;
+                tutorialBox.style.display = tutorialBoxVisible ? 'block' : 'none';
+                
+                if (!tutorialBoxVisible && !showTutorialButton) {
+                    showTutorialButton = createShowTutorialButton();
+                } else if (tutorialBoxVisible && showTutorialButton) {
+                    showTutorialButton.remove();
+                    showTutorialButton = null;
+                }
+            }
+
+            // アクション完了時に自動的にチュートリアルを表示
+            function showTutorialOnActionComplete() {
+                if (!tutorialBoxVisible) {
+                    tutorialBoxVisible = true;
+                    tutorialBox.style.display = 'block';
                     
-                    while (
-                        r >= 0 && r < gameState.boardHeight && 
-                        c >= 0 && c < gameState.boardWidth && 
-                        tempBoard[r][c] === 'player'
-                    ) {
-                        count++;
-                        r += dirX;
-                        c += dirY;
+                    if (showTutorialButton) {
+                        showTutorialButton.remove();
+                        showTutorialButton = null;
+                    }
+                    
+                    const nextBtn = document.getElementById('nextStepBtn');
+                    if (nextBtn) {
+                        nextBtn.disabled = false;
+                        nextBtn.classList.add('highlight');
+                        
+                        // ハイライトを少し時間が経ったら消す
+                        setTimeout(() => {
+                            nextBtn.classList.remove('highlight');
+                        }, 3000);
+                    }
+                }
+            }
+
+            // 要素をハイライト
+            function highlightElement(selector) {
+                // すべてのハイライトをクリア
+                document.querySelectorAll('.highlight-cell').forEach(el => {
+                    el.classList.remove('highlight-cell');
+                });
+                
+                if (!selector) return;
+                
+                // アクションに応じた動的ハイライト
+                if (currentStep === 2) { // リンク作成ステップ
+                    // リンクが作れる位置をハイライト
+                    const possibleLinks = findPossibleLinks();
+                    if (possibleLinks.length > 0) {
+                        possibleLinks.forEach(pos => {
+                            const cell = document.querySelector(`.cell[data-row="${pos.row}"][data-col="${pos.col}"]`);
+                            if (cell) {
+                                cell.classList.add('highlight-cell');
+                            }
+                        });
+                        return;
                     }
                 }
                 
-                if (count >= 3) {
-                    wouldLink = true;
-                    break;
+                // 通常のセレクタベースハイライト
+                document.querySelectorAll(selector).forEach(el => {
+                    el.classList.add('highlight-cell');
+                });
+            }
+            
+            // 次のステップへ
+            function nextStep() {
+                // 前のステップのリスナーをクリア
+                clearTutorialListeners();
+                
+                if (currentStep < tutorialSteps.length - 1) {
+                    currentStep++;
+                    showStep();
+                } else {
+                    // チュートリアル完了
+                    completeTutorial();
                 }
             }
             
-            if (wouldLink) {
-                possiblePositions.push({ row, col });
+            // チュートリアル完了
+            function completeTutorial() {
+                tutorialOverlay.remove();
+                tutorialBox.remove();
+                
+                if (showTutorialButton) {
+                    showTutorialButton.remove();
+                }
+                
+                clearTutorialListeners();
+                
+                localStorage.setItem('tutorialComplete', 'true');
+                
+                // 実際のゲーム開始
+                restartWithoutTutorial();
             }
-        }
-        
-        return possiblePositions;
-    }
-    
-    // ステップアクションのセットアップ
-    function setupStepAction(step) {
-        switch (step.action) {
-            case 'placeBox':
-                // ユーザーの配置アクションを待つ
-                document.body.addEventListener('click', handleGlobalClick);
-                break;
+            
+            // リンクできる可能性のある位置を探す
+            function findPossibleLinks() {
+                const possiblePositions = [];
                 
-            case 'createLink':
-                // リンクを作る位置をハイライト
-                highlightElement(null); // 動的ハイライト用
-                document.body.addEventListener('click', handleGlobalClick);
-                break;
+                for (let col = 0; col < gameState.boardWidth; col++) {
+                    const row = findAvailableRow(col);
+                    if (row === -1) continue; // この列はいっぱい
+                    
+                    // この位置に置いたときにリンクができるか確認
+                    const tempBoard = JSON.parse(JSON.stringify(gameState.board));
+                    tempBoard[row][col] = 'player';
+                    
+                    const directions = [
+                        [0, 1],   // 水平
+                        [1, 0],   // 垂直
+                        [1, 1],   // 右下斜め
+                        [1, -1]   // 左下斜め
+                    ];
+                    
+                    let wouldLink = false;
+                    
+                    for (const [dx, dy] of directions) {
+                        let count = 1; // 自分自身を含む
+                        
+                        // 両方向にカウント
+                        for (const [dirX, dirY] of [[dx, dy], [-dx, -dy]]) {
+                            let r = row + dirX;
+                            let c = col + dirY;
+                            
+                            while (
+                                r >= 0 && r < gameState.boardHeight && 
+                                c >= 0 && c < gameState.boardWidth && 
+                                tempBoard[r][c] === 'player'
+                            ) {
+                                count++;
+                                r += dirX;
+                                c += dirY;
+                            }
+                        }
+                        
+                        if (count >= 3) {
+                            wouldLink = true;
+                            break;
+                        }
+                    }
+                    
+                    if (wouldLink) {
+                        possiblePositions.push({ row, col });
+                    }
+                }
                 
-            case 'defeatEnemy':
-                // 敵のHPをかなり低くして、もう少しで倒せるようにする
+                return possiblePositions;
+            }
+            
+            // ステップアクションのセットアップ
+            function setupStepAction(step) {
+                // 前のステップのactionCompletedフラグをリセット
+                tutorialSteps.forEach(s => s.actionCompleted = false);
+                
+                switch (step.action) {
+                    case 'placeBox':
+                        // 箱配置用のイベントリスナー
+                        setupPlaceBoxAction();
+                        break;
+                        
+                    case 'createLink':
+                        // リンク作成用のイベントリスナー
+                        setupCreateLinkAction();
+                        break;
+                        
+                    case 'defeatEnemy':
+                        // 敵を倒すステップ
+                        setupDefeatEnemyAction();
+                        break;
+                        
+                    case 'useCard':
+                        // カード使用ステップ
+                        setupUseCardAction();
+                        break;
+                        
+                    case 'complete':
+                        // 最終ステップは特に何もしない
+                        tutorialSteps[currentStep].actionCompleted = true;
+                        const nextBtn = document.getElementById('nextStepBtn');
+                        if(nextBtn){
+                            nextBtn.disabled = false;
+                            nextBtn.classList.add('highlight');
+                            setTimeout(() => {
+                                nextBtn.classList.remove('highlight');
+                            }, 3000);
+                        }
+                        break;
+                }
+            }
+            
+            // 箱配置ステップのセットアップ
+            function setupPlaceBoxAction() {
+                const placeBoxHandler = (e) => {
+                    const cell = e.target.closest('.cell');
+                    if (!cell) return;
+                    
+                    const col = parseInt(cell.dataset.col);
+                    const result = tutorialCellClick(col);
+                    
+                    if (result.success) {
+                        // アクション完了としてマーク
+                        tutorialSteps[currentStep].actionCompleted = true;
+                        
+                        // 次へボタンを有効化
+                        const nextBtn = document.getElementById('nextStepBtn');
+                        if (nextBtn) nextBtn.disabled = false;
+                        
+                        // チュートリアルを表示
+                        showTutorialOnActionComplete();
+                        
+                        // このリスナーを削除
+                        clearTutorialListeners();
+                    }
+                };
+                
+                // ボードの全セルにイベントリスナーを追加
+                document.querySelectorAll('.cell').forEach(cell => {
+                    addTutorialListener(cell, 'click', placeBoxHandler);
+                });
+            }
+            
+            // リンク作成ステップのセットアップ
+            function setupCreateLinkAction() {
+                // リンク作成位置をハイライト
+                highlightElement(null);
+                
+                const createLinkHandler = (e) => {
+                    const cell = e.target.closest('.cell');
+                    if (!cell) return;
+                    
+                    const col = parseInt(cell.dataset.col);
+                    const result = tutorialCellClick(col);
+                    
+                    if (result.success && result.connections >= 3) {
+                        // リンク発生時
+                        showMessage(`${result.connections}リンク達成！敵にダメージを与えました！`);
+                        
+                        // 敵にダメージを与える
+                        gameState.enemyHP = Math.max(0, gameState.enemyHP - 5);
+                        updateUI();
+                        
+                        // アクション完了としてマーク
+                        tutorialSteps[currentStep].actionCompleted = true;
+                        
+                        // 次へボタンを有効化
+                        const nextBtn = document.getElementById('nextStepBtn');
+                        if (nextBtn) nextBtn.disabled = false;
+                        
+                        // チュートリアルを表示
+                        showTutorialOnActionComplete();
+                        
+                        // このリスナーを削除
+                        clearTutorialListeners();
+                    } else {
+                        // リンク未発生時は再度ハイライト
+                        setTimeout(() => highlightElement(null), 500);
+                    }
+                };
+                
+                // ボードの全セルにイベントリスナーを追加
+                document.querySelectorAll('.cell').forEach(cell => {
+                    addTutorialListener(cell, 'click', createLinkHandler);
+                });
+            }
+            
+            // 敵を倒すステップのセットアップ
+            function setupDefeatEnemyAction() {
+                // 敵のHPを低くする
                 gameState.enemyHP = 5;
                 updateUI();
-                document.body.addEventListener('click', handleGlobalClick);
-                break;
                 
-            case 'useCard':
+                // ステージクリア通知を抑制
+                gameState.tutorialPreventStageClear = true;
+                
+                const defeatEnemyHandler = (e) => {
+                    const cell = e.target.closest('.cell');
+                    if (!cell) return;
+                    
+                    const col = parseInt(cell.dataset.col);
+                    const result = tutorialCellClick(col);
+                    
+                    if (result.success) {
+                        // リンクによるダメージを計算（チュートリアル用の簡易版）
+                        let damage = result.connections >= 3 ? 10 : 0;
+                        
+                        if (damage > 0) {
+                            // 敵にダメージを与える
+                            gameState.enemyHP = Math.max(0, gameState.enemyHP - damage);
+                            updateUI();
+                            
+                            showMessage(`敵に${damage}ダメージ！`);
+                            
+                            // 敵が倒れたらアクション完了
+                            if (gameState.enemyHP <= 0) {
+                                // アクション完了としてマーク
+                                tutorialSteps[currentStep].actionCompleted = true;
+                                
+                                // 次へボタンを有効化
+                                const nextBtn = document.getElementById('nextStepBtn');
+                                if (nextBtn) nextBtn.disabled = false;
+                                
+                                // チュートリアルを表示
+                                showTutorialOnActionComplete();
+                                
+                                // このリスナーを削除
+                                clearTutorialListeners();
+                                
+                                showMessage('敵を倒しました！');
+                            }
+                        }
+                    }
+                };
+                
+                // ボードの全セルにイベントリスナーを追加
+                document.querySelectorAll('.cell').forEach(cell => {
+                    addTutorialListener(cell, 'click', defeatEnemyHandler);
+                });
+            }
+            
+            // カード使用ステップのセットアップ
+            function setupUseCardAction() {
                 // 初心者のお守りカードを追加
                 addBeginnerCharmCard();
                 renderCards();
                 
-                // カードクリックイベントを監視
-                const cardElements = document.querySelectorAll('.card');
-                cardElements.forEach(card => {
-                    card.addEventListener('click', () => {
-                        tutorialActionCompleted = true;
-                        document.getElementById('nextStepBtn').disabled = false;
-                        highlightElement(null);
-                    });
-                });
-                break;
-                
-            case 'complete':
-                // 最終ステップは特に何もしない
-                break;
-        }
-    }
-    
-    // グローバルクリックハンドラ（箱の配置用）
-    function handleGlobalClick(e) {
-        const step = tutorialSteps[currentStep];
-        
-        if (step.action === 'placeBox' || step.action === 'createLink' || step.action === 'defeatEnemy') {
-            const cell = e.target.closest('.cell');
-            if (cell) {
-                const col = parseInt(cell.dataset.col);
-                
-                // 通常のセルクリックハンドラを呼び出す
-                const originalHandleCellClick = handleCellClick;
-                const originalShowStageClearNotification = window.showStageClearNotification;
-
-                // 一時的にステージクリア通知を無効化
-                window.showStageClearNotification = function() {};
-
-                // 一時的にオーバーライド
-                window.handleCellClick = function(col) {
-                    const row = findAvailableRow(col);
-                    if (row === -1) return;
+                const cardClickHandler = (e) => {
+                    const card = e.target.closest('.card');
+                    if (!card) return;
                     
-                    // 元のハンドラを実行
-                    originalHandleCellClick(col);
+                    // カードがクリックされたらアクション完了
+                    tutorialSteps[currentStep].actionCompleted = true;
                     
-                    // ステップ固有の処理
-                    switch (step.action) {
-                        case 'placeBox':
-                            // 箱を置いたらアクション完了
-                            tutorialActionCompleted = true;
-                            document.getElementById('nextStepBtn').disabled = false;
-                            document.body.removeEventListener('click', handleGlobalClick);
-                            showTutorialOnActionComplete();
-                            break;
-                            
-                        case 'createLink':
-                            // リンクができたかチェック
-                            const connections = checkConnections(row, col, 'player');
-                            if (connections >= 3) {
-                                tutorialActionCompleted = true;
-                                document.getElementById('nextStepBtn').disabled = false;
-                                document.body.removeEventListener('click', handleGlobalClick);
-                                showTutorialOnActionComplete();
-                            } else {
-                                // リンクができなかったら再度ヒントを表示
-                                setTimeout(() => highlightElement(null), 500);
-                            }
-                            break;
-                            
-                        case 'defeatEnemy':
-                            // 敵が倒れたらアクション完了
-                            if (gameState.enemyHP <= 0) {
-                                tutorialActionCompleted = true;
-                                document.getElementById('nextStepBtn').disabled = false;
-                                document.body.removeEventListener('click', handleGlobalClick);
-                                
-                                // ステージクリア通知を無効化
-                                //window.showStageClearNotification = function() {};
-
-                                showTutorialOnActionComplete(); // チュートリアルを表示
-                            }
-                            break;
-                    }
+                    // 次へボタンを有効化
+                    const nextBtn = document.getElementById('nextStepBtn');
+                    if (nextBtn) nextBtn.disabled = false;
                     
-                    // 元のハンドラを復元
-                    window.handleCellClick = originalHandleCellClick;
-                    window.showStageClearNotification = originalShowStageClearNotification;
+                    // チュートリアルを表示
+                    showTutorialOnActionComplete();
                 };
                 
-                // クリックイベントを発火
-                handleCellClick(col);
+                // すべてのカードにイベントリスナーを追加
+                document.querySelectorAll('.card').forEach(card => {
+                    addTutorialListener(card, 'click', cardClickHandler);
+                });
             }
-        }
-    
-    }
-    
-    // 初心者のお守りカードを追加
-    function addBeginnerCharmCard() {
-        const beginnerCharm = {
-            id: 'beginner-charm',
-            name: '初心者のお守り',
-            description: 'チュートリアル限定カード。攻撃力+30になる',
-            isActive: false,
-            consumable: false,
-            cooldown: 0,
-            onActivate: () => {
-                gameState.playerAttack += 30;
-                updateUI();
-                showMessage('初心者のお守り：攻撃力が大幅に上昇しました！');
-            },
-            onDeactivate: () => {
-                gameState.playerAttack -= 30;
+            
+            // 初心者のお守りカードを追加
+            function addBeginnerCharmCard() {
+                const beginnerCharm = {
+                    id: 'beginner-charm',
+                    name: '初心者のお守り',
+                    description: 'チュートリアル限定カード。攻撃力+30になる',
+                    isActive: false,
+                    consumable: false,
+                    cooldown: 0,
+                    onActivate: () => {
+                        gameState.playerAttack += 30;
+                        updateUI();
+                        showMessage('初心者のお守り：攻撃力が大幅に上昇しました！');
+                    },
+                    onDeactivate: () => {
+                        gameState.playerAttack -= 30;
+                        updateUI();
+                    }
+                };
+                
+                gameState.playerCards.push(beginnerCharm);
+            }
+            
+            // チュートリアル用ゲーム状態のリセット
+            function resetGameStateForTutorial() {
+                // チュートリアルモードをアクティブに
+                gameState.tutorialActive = true;
+                gameState.tutorialPreventStageClear = true;
+                
+                // ゲーム基本状態の初期化
+                gameState.board = Array(gameState.boardHeight).fill().map(() => Array(gameState.boardWidth).fill(null));
+                gameState.currentPlayer = 'player';
+                gameState.playerHP = 100;
+                gameState.enemyHP = 20;
+                gameState.enemyMaxHP = 20;
+                gameState.playerAttack = 10;
+                gameState.playerDefense = 0;
+                gameState.enemyAttack = 5;
+                gameState.enemyDefense = 0;
+                gameState.stage = 0; // チュートリアルは0ステージ
+                gameState.turn = 1;
+                gameState.consecutiveDamageCount = 0;
+                gameState.playerCards = [];
+                gameState.activeCards = [];
+                gameState.statusEffects = {
+                    player: [],
+                    enemy: []
+                };
+                
+                // ボードの初期化
+                elements.gameBoard.innerHTML = '';
+                elements.gameBoard.appendChild(elements.stageIndicator);
+                
+                for (let row = 0; row < gameState.boardHeight; row++) {
+                    for (let col = 0; col < gameState.boardWidth; col++) {
+                        const cell = document.createElement('div');
+                        cell.className = 'cell';
+                        cell.dataset.row = row;
+                        cell.dataset.col = col;
+                      // チュートリアル中は通常のクリックハンドラを付けない
+                      elements.gameBoard.appendChild(cell);
+                    }
+                }
+
+                // UI更新
+                elements.stageIndicator.textContent = 'チュートリアル';
+                elements.stageNumber.textContent = '準備中';
+                renderBoard();
                 updateUI();
             }
-        };
-        
-        gameState.playerCards.push(beginnerCharm);
-    }
-    
-    // チュートリアル用ゲーム状態のリセット
-    function resetGameStateForTutorial() {
-        // ゲーム基本状態の初期化
-        gameState.board = Array(gameState.boardHeight).fill().map(() => Array(gameState.boardWidth).fill(null));
-        gameState.currentPlayer = 'player';
-        gameState.playerHP = 100;
-        gameState.enemyHP = 20;
-        gameState.enemyMaxHP = 20;
-        gameState.playerAttack = 10;
-        gameState.playerDefense = 0;
-        gameState.enemyAttack = 5;
-        gameState.enemyDefense = 0;
-        gameState.stage = 0; // チュートリアルは0ステージ
-        gameState.turn = 1;
-        gameState.consecutiveDamageCount = 0;
-        gameState.playerCards = [];
-        gameState.activeCards = [];
-        gameState.statusEffects = {
-            player: [],
-            enemy: []
-        };
-        
-        // ボードの初期化 - ここが重要
-    elements.gameBoard.innerHTML = '';
-    elements.gameBoard.appendChild(elements.stageIndicator);
-    
-    for (let row = 0; row < gameState.boardHeight; row++) {
-        for (let col = 0; col < gameState.boardWidth; col++) {
-            const cell = document.createElement('div');
-            cell.className = 'cell';
-            cell.dataset.row = row;
-            cell.dataset.col = col;
-            elements.gameBoard.appendChild(cell);
-        }
-    }
-
-        // UI更新
-        renderBoard();
-        updateUI();
-    }
-    
-    // チュートリアルなしで正規のゲームを開始
-    function restartWithoutTutorial() {
-        // チュートリアルで追加したカードを削除
-        gameState.playerCards = gameState.playerCards.filter(card => card.id !== 'beginner-charm');
-        gameState.activeCards = gameState.activeCards.filter(card => card.id !== 'beginner-charm');
-        
-        // 正規のゲーム開始
-        initGame();
-    }
-    
-
-    
-    // チュートリアル開始
-    showStep();
-    
-    // チュートリアル用スタイルの追加
-    const style = document.createElement('style');
-    style.textContent = `
-        @keyframes pulse {
-            0% { box-shadow: 0 0 10px 3px #4CAF50; }
-            50% { box-shadow: 0 0 15px 5px #4CAF50; }
-            100% { box-shadow: 0 0 10px 3px #4CAF50; }
+            
+            // チュートリアルなしで正規のゲームを開始
+            function restartWithoutTutorial() {
+                // チュートリアルモードを無効に
+                gameState.tutorialActive = false;
+                gameState.tutorialPreventStageClear = false;
+                
+                // チュートリアルで追加したカードを削除
+                gameState.playerCards = gameState.playerCards.filter(card => card.id !== 'beginner-charm');
+                gameState.activeCards = gameState.activeCards.filter(card => card.id !== 'beginner-charm');
+                
+                // 正規のゲーム開始
+                initGame();
+            }
+            
+            // チュートリアル開始
+            showStep();
         }
 
-        @keyframes buttonPulse {
-            0% { transform: scale(1); }
-            50% { transform: scale(1.1); }
-            100% { transform: scale(1); }
+        // ゲーム開始関数
+        function startGame() {
+            // まず通常のゲーム初期化を行う（ボードの作成のため）
+            initGame();
+            
+            // その後チュートリアルチェック
+            setTimeout(() => {
+                const tutorialComplete = localStorage.getItem('tutorialComplete') === 'true';
+                if (!tutorialComplete) {
+                    showTutorial();
+                }
+            }, 500); // 少し遅延させてDOMが確実に作成されるようにする
         }
-    `;
-    document.head.appendChild(style);
-}
 
-// ゲーム開始関数の修正
-function startGame() {
-    // まず通常のゲーム初期化を行う（ボードの作成のため）
-    initGame();
-    
-    // その後チュートリアルチェック
-    setTimeout(() => {
-        const tutorialComplete = localStorage.getItem('tutorialComplete') === 'true';
-        if (!tutorialComplete) {
-            showTutorial();
-        }
-    }, 500); // 少し遅延させてDOMが確実に作成されるようにする
-}
-
-// 初期化関数の呼び出しを変更
-// initGame(); の代わりに
-startGame();
+        // 初期化関数の呼び出し
+        startGame();
         
     </script>
 </body>
