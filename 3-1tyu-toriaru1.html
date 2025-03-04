@@ -1059,9 +1059,9 @@
                 }
             },
             {
-                ...createCard('meditation', '瞑想', 'ターン開始時にHP+3回復する'),
+                ...createCard('meditation', '瞑想', 'ターン開始時にHP+1回復する'),
                 onTurnStart: () => {
-                    const healAmount = 3;
+                    const healAmount = 1;
                     gameState.playerHP = Math.min(100, gameState.playerHP + healAmount);
                     showMessage(`<span class="healing-effect">瞑想: ${healAmount}HP回復！</span>`);
                     addToLog('回復', `瞑想: HP+${healAmount}`);
@@ -1094,7 +1094,7 @@
                 },
                 onTurnEnd: () => {
                     gameState.playerHP = Math.max(1, gameState.playerHP - 1);
-                    showMessage('ソウルリンク: HP-1...');
+                    showMessage('命が削られた:HP-1');
                     addToLog('効果', 'ソウルリンク: HP-1');
                     updateUI();
                 }
