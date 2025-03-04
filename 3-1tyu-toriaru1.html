@@ -602,7 +602,10 @@
             // ここに新しい変数を追加
             gold: 0, // ゴールド（初期値0）
             shopAppearChance: 0.3, // ショップ出現確率
-            debugMode: false // デバッグモード
+            debugMode: false, // デバッグモード
+
+            //luckyseven用
+            extraTurnAvailable: false
         };
 
         // カードの基本テンプレート
@@ -633,8 +636,8 @@
             {
                 ...createCard('lucky-seven', 'ラッキーセブン', '7ターンごとに50%の確率で追加で箱を置くことができる'),
                 onTurnStart: () => {
-                    if (gameState.turn % 7 === 0 && Math.random() < 0.5) {
-                        addToLog('効果', 'ラッキーセブン: 追加ターン発動！');
+                    if (gameState.currentPlayer === 'player' && gameState.turn % 7 === 0 && Math.random() < 0.5) {
+                        gameState.extraTurnAvailable = true;
                         return true;
                     }
                     return false;
@@ -680,36 +683,52 @@
             {
                 ...createCard('sky-ruler', '天空の支配者', '最も上段に自分の箱がある数分、攻撃力+15される'),
                 effect: (damage) => damage + countTopRowPieces() * 15,
-                onActivate: () => {
+                onActivate: function(){
                     const topPieces = countTopRowPieces();
+                    this.currentBonus = topPieces * 15;
+
                     if (topPieces > 0) {
-                        gameState.playerAttack += topPieces * 15;
+                        gameState.playerAttack += this.currentBonus;
                         updateUI();
-                        addToLog('効果', `天空の支配者: 攻撃力+${topPieces * 15} (上段の箱: ${topPieces}個)`);
+                        addToLog('効果', `天空の支配者: 攻撃力+${this.currentBonus} (上段の箱: ${topPieces}個)`);
                     }
+
+                    this.lastTopPieces = topPieces;
                 },
                 onDeactivate: () => {
-                    const topPieces = countTopRowPieces();
-                if (topPieces > 0) {
-                    gameState.playerAttack -= topPieces * 15;
-                    updateUI();
-                    addToLog('効果', `天空の支配者: 攻撃力-${topPieces * 15}`);
-                }
+
+                    if (this.currentBonus > 0) {
+                        gameState.playerAttack -= this.currentBonus;
+                        updateUI();
+                        addToLog('効果', `天空の支配者: 攻撃力-${this.currentBonus}`);
+                    }
+
+                    this.currentBonus = 0;
+                    this.lastTopPieces = 0;
                 },
-                onBoardChange: () => {
+                onBoardChange: function() {
                     if (gameState.activeCards.some(card => card.id === 'sky-ruler')) {
                         // 盤面変更時に攻撃力を再計算
                         const currentTopPieces = countTopRowPieces();
                         const card = gameState.activeCards.find(c => c.id === 'sky-ruler');
+                        
                         if (card.lastTopPieces !== undefined) {
-                            gameState.playerAttack -= card.lastTopPieces * 15;
-                            gameState.playerAttack += currentTopPieces * 15;
+
+                            const oldBonus = card.lastTopPieces * 15;
+                            const newBonus = currentTopPieces * 15;
+
+                            gameState.playerAttack -= oldBonus;
+                            gameState.playerAttack += newBonus;
+
+                            card.currentBonus = newBonus;
+
                             addToLog('効果', `天空の支配者: 上段の箱が${card.lastTopPieces}個→${currentTopPieces}個に変化 (攻撃力${gameState.playerAttack})`);
                             card.lastTopPieces = currentTopPieces;
+                            updateUI();
                         } else {
                             card.lastTopPieces = currentTopPieces;
+                            card.currentBonus = currentTopPieces * 15;
                         }
-                        updateUI();
                     }
                 }
             },
@@ -930,24 +949,28 @@
                 }
             },
             {
-                ...createCard('counter-stance', '反撃の構え', '敵からダメージを受けた後、次の自分のターンの攻撃力+20'),
+                ...createCard('counter-stance', '反撃の構え', '敵からダメージを受けた後、次の自分のターンの攻撃力+50'),
                 onDamageReceived: () => {
+
+                    gameState.statusEffects.player = gameState.statusEffects.player.filter(e => e.name !== '反撃態勢');
+
+                    //新しい効果を追加
                     addStatusEffect('player', {
                         name: '反撃態勢',
                         type: 'buff',
                         duration: 1,
-                        attackBonus: 20
-                    });
-                    gameState.playerAttack += 20;
-                    updateUI();
-                    addToLog('効果', '反撃の構え: 攻撃力+20');
-                    setTimeout(() => {
-                        if (gameState.statusEffects.player.some(e => e.name === '反撃態勢')) {
-                            gameState.playerAttack -= 20;
+                        onRemove: () => {
+                            gameState.playerAttack -= 50;
                             updateUI();
-                            addToLog('効果', '反撃の構え: 効果終了、攻撃力-20');
+                            addToLog('効果', '反撃の構え: 効果終了、攻撃力-50');
                         }
-                    }, 2000);
+                    });
+
+                    //攻撃力を増加
+                    gameState.playerAttack += 50;
+                    updateUI();
+                    addToLog('効果', '反撃の構え: 攻撃力+50');
+                    showMessage('反撃の構え: 攻撃力+50');
                 }
             },
             {
@@ -1213,6 +1236,11 @@
                             updateUI();
                             addToLog('効果', `${effect.name}: 効果終了、攻撃力-${effect.attackBonus}`);
                         }
+
+                        if(effect.onRemove){
+                            effect.onRemove();
+                        }   
+
                         gameState.statusEffects.player.splice(i, 1);
                     }
                 }
@@ -1538,6 +1566,7 @@ function showCardSelectionDebug() {
                 tutorialActive: false,
                 tutorialPreventStageClear: false,
                 log: [],
+                extraTurnAvailable: false,
 
                 gold: 0
             });
@@ -1604,10 +1633,10 @@ function showCardSelectionDebug() {
                 
                 // リンクチェックとダメージ計算
                 const connectionResult = checkConnections(row, col, 'player');
-                const didDealDamage = applyDamage(connectionResult, 'player');
+                const appliedDamage = applyDamage(connectionResult, 'player');
                 
                 // 「上達への道」カードの効果を適用
-                if (didDealDamage) {
+                if (appliedDamage > 0) {
                     const masteryCard = gameState.activeCards.find(card => card.id === 'mastery-path');
                     if (masteryCard?.onDamageDealt) {
                         masteryCard.onDamageDealt();
@@ -1616,15 +1645,13 @@ function showCardSelectionDebug() {
                     // 「ライフサップ」の効果を適用
                     const lifeSapCard = gameState.activeCards.find(card => card.id === 'life-sap');
                     if (lifeSapCard?.onDamageDealt) {
-                        // 与えたダメージの20%を回復
-                        const damage = Math.min(gameState.enemyMaxHP, gameState.enemyHP + connections) - gameState.enemyHP;
-                        lifeSapCard.onDamageDealt(damage);
+                        lifeSapCard.onDamageDealt(appliedDamage);
                     }
                     
                     // 「生命オーラ」の効果を適用
                     const vitalityCard = gameState.activeCards.find(card => card.id === 'vitality-aura');
-                    if (vitalityCard?.onLinkCompleted && connections >= 3) {
-                        vitalityCard.onLinkCompleted(connections);
+                    if (vitalityCard?.onLinkCompleted && connectionResult.connections >= 3) {
+                        vitalityCard.onLinkCompleted(connectionResult.connections);
                     }
                 } else {
                     // ダメージを与えられなかった場合、連続カウントをリセット
@@ -1645,6 +1672,15 @@ function showCardSelectionDebug() {
                     return;
                 }
 
+                // ここが変更点: 追加ターンが利用可能なら、敵のターンに移行せずプレイヤーのターンを継続
+                if (gameState.extraTurnAvailable) {
+                    gameState.extraTurnAvailable = false; // 追加ターンを消費
+                    gameState.animationInProgress = false;
+                    showMessage('ラッキーセブン: もう一度箱を置けます！');
+                    addToLog('効果', 'ラッキーセブン: 追加ターン使用');
+                    return; // ここで関数を終了し、プレイヤーのターンを継続
+                }
+
                 // カードのクールダウンを減らす
                 updateCardCooldowns();
 
@@ -1656,7 +1692,6 @@ function showCardSelectionDebug() {
 
                 // ターン終了と敵のターン
                 gameState.currentPlayer = 'enemy';
-                gameState.turn++;
                 updateUI();
                 
                 addToLog('ターン', `ターン${gameState.turn}開始: 敵のターン`);
@@ -1753,7 +1788,7 @@ function showCardSelectionDebug() {
             processStatusEffects();
 
 // 敵の攻撃が霧で失敗するかチェック
-const fogEffect = gameState.statusEffects.enemy.find(effect => effect.missChance);
+            const fogEffect = gameState.statusEffects.enemy.find(effect => effect.missChance);
             if (fogEffect && Math.random() < fogEffect.missChance) {
                 showMessage('霧の効果！敵の攻撃が失敗した！');
                 addToLog('効果', '霧の効果: 敵の攻撃が失敗');
@@ -1762,6 +1797,9 @@ const fogEffect = gameState.statusEffects.enemy.find(effect => effect.missChance
                 gameState.turn++;
                 updateUI();
                 addToLog('ターン', `ターン${gameState.turn}開始: プレイヤーのターン`);
+                
+                
+                checkLuckySevenEffect();
                 return;
             }
 
@@ -1788,10 +1826,6 @@ const fogEffect = gameState.statusEffects.enemy.find(effect => effect.missChance
                     return;
                 }
 
-                // ラッキーセブンカードの効果をチェック
-                const luckySeven = gameState.activeCards.find(card => card.id === 'lucky-seven');
-                const extraTurn = luckySeven?.onTurnStart?.() || false;
-
                 // プレイヤーターンに戻る
                 gameState.currentPlayer = 'player';
                 gameState.turn++;
@@ -1802,11 +1836,20 @@ const fogEffect = gameState.statusEffects.enemy.find(effect => effect.missChance
                 // アニメーション完了
                 gameState.animationInProgress = false;
 
-                // ラッキーセブンが発動した場合は追加ターン
-                if (extraTurn) {
-                    showMessage('ラッキーセブン発動！追加で手を打てます！');
-                }
+                checkLuckySevenEffect();
             });
+        }
+
+        function checkLuckySevenEffect(){
+            // ラッキーセブンカードの効果をチェック
+            const luckySeven = gameState.activeCards.find(card => card.id === 'lucky-seven');
+            if(luckySeven){
+                if(gameState.turn % 7 === 0 && Math.random() < 0.5){
+                    showMessage('ラッキーセブン: 追加で二個置けます！');
+                    addToLog('効果', 'ラッキーセブン: 追加ターン使用');
+                    gameState.extraTurnAvailable = true;
+                }
+            }
         }
 
         // カードのクールダウンを更新
@@ -2049,7 +2092,7 @@ function highlightLinkedBoxes(positions, connections) {
             }
 
             updateUI();
-            return true; // ダメージを与えた
+            return damage > 0 ? damage :0; // ダメージを与えた
         }
 
         // ステージクリア通知を表示
@@ -2282,6 +2325,7 @@ function showShopScreen() {
             gameState.cardSelectionInProgress = false;
             
             gameState.stage++;
+            gameState.turn = 1;
             
             // 5ステージごとにボス敵（強化敵）
             const isBossStage = gameState.stage % 5 === 0;
