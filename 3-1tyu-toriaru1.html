@@ -3103,7 +3103,7 @@ function showShopScreen() {
             
             // その後チュートリアルチェック
             setTimeout(() => {
-                const tutorialComplete = localStorage.getItem('tutorialComplete') === 'false';
+                const tutorialComplete = localStorage.getItem('tutorialComplete') === 'true';
                 if (!tutorialComplete) {
                     showTutorial();
                 }
